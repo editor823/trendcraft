@@ -14,6 +14,9 @@ export interface TrendItem {
   product_idea: string;
   service_idea: string;
   sources: SourceType[];
+  app_opportunity_score?: number;
+  competitor_count?: 'LOW' | 'MID' | 'HIGH';
+  ai_app_prompt?: string;
 }
 
 export interface TrendCluster {

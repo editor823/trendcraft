@@ -53,6 +53,51 @@ def fetch_raw_keywords(supabase: Client, limit: int = 200) -> List[dict]:
 
 
 # ---------------------------------------------------------------------------
+# 유튜브 ASO 마이크로 앱 공장 스펙 생성기 (검색어 선정 -> 2시간 컷 모바일 AI 앱 개발)
+# ---------------------------------------------------------------------------
+def generate_aso_micro_app_spec(keyword: str, service_idea: str, score: int) -> Dict[str, Any]:
+    """유튜브 ASO 마이크로 앱 공장 전략: 검색어 먼저 고르고 2시간 만에 AI 앱 출시
+    - 사람들이 모바일로 즉시 해결하고 싶어 하는 문제(식별, 계산, 변환, 요약 등)를 도출
+    - Claude Code / Cursor에 붙여넣으면 2시간 만에 만들 수 있는 One-Click Build Spec 생성
+    """
+    key_clean = keyword.strip()
+    key_lower = key_clean.lower()
+
+    # 기회 점수 (1~100) 및 경쟁 강도 (LOW/MID/HIGH)
+    bonus = 5 if any(w in key_lower or w in key_clean for w in ["ai", "자동", "계산", "스파이크", "보안"]) else 0
+    opp_score = min(98, max(75, score + bonus))
+    competitor = "LOW" if opp_score >= 90 else ("MID" if opp_score >= 80 else "HIGH")
+
+    prompt = f"""# [Claude Code / Cursor 전용] 2시간 컷 모바일 AI 마이크로 앱 One-Click Build Spec
+
+## 📱 프로젝트 개요
+- **앱 명칭**: {key_clean.replace(' ', '')} Pocket MVP
+- **타겟 ASO 검색어**: "{key_clean}", "{key_clean} 계산기", "{key_clean} 요약", "{key_clean} 자동화"
+- **개발 제한 시간**: ⏱️ 정확히 2시간 (오직 단 1개의 핵심 기능만 완벽히 구현)
+- **추천 스택**: Next.js 14 (Mobile PWA) 또는 React Native (Expo) + Tailwind CSS + Lucide Icons
+
+## 💡 모바일 즉시 해결 문제 (Core Problem)
+- 사용자가 모바일 스마트폰 화면에서 3초 안에:
+  {service_idea}
+
+## 🚀 2시간 완성 핵심 기능 명세 (Single Core MVP)
+1. **[직관적 1페이지 UI]**: 상단 헤더, 메인 원클릭 입력 인풋(사진 업로드 또는 텍스트 입력창), 결과 표시 카드.
+2. **[AI/로직 즉시 처리 엔진]**: 무료 AI API(Groq / Gemini Flash) 또는 경량 자바스크립트 계산 로직으로 1초 안에 결과 산출.
+3. **[원클릭 공유 및 클립보드 복사]**: 생성된 결과를 카카오톡, 인스타, 슬랙으로 즉시 전송할 수 있는 원클릭 복사 버튼.
+
+## 🛠️ 개발 지시사항
+- 불필요한 회원가입이나 복잡한 설정 없이, 앱을 켜자마자 바로 동작하는 로컬 상태(useState) 기반으로 코드를 완성해줘.
+- 모바일 세로 뷰포트(`w-full max-w-md mx-auto min-h-screen`)에 완벽하게 최적화해줘.
+"""
+
+    return {
+        "app_opportunity_score": opp_score,
+        "competitor_count": competitor,
+        "ai_app_prompt": prompt.strip(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # 고품질 시맨틱 클러스터 & 3대 실행 아이디어 생성기 (30+ items, SPIKE 15+ / LONG_TAIL 15+)
 # ---------------------------------------------------------------------------
 def generate_enriched_trend_clusters(period_type: str, raw_count: int) -> List[Dict[str, Any]]:
@@ -336,13 +381,25 @@ def generate_enriched_trend_clusters(period_type: str, raw_count: int) -> List[D
 
     results = []
     for bp in clusters_blueprint:
+        enriched_items = []
+        for itm in bp["items"]:
+            # 유튜브 ASO 마이크로 앱 공장 스펙 자동 생성 및 병합
+            aso_data = generate_aso_micro_app_spec(
+                itm["keyword"],
+                itm.get("service_idea", ""),
+                itm.get("score", 85)
+            )
+            item_copy = dict(itm)
+            item_copy.update(aso_data)
+            enriched_items.append(item_copy)
+
         c_dict = {
             "period_type": period_type,
             "region": bp["region"],
             "cluster_name": bp["cluster_name"],
             "cluster_summary": bp["cluster_summary"],
             "target_date": today_str,
-            "items": bp["items"],
+            "items": enriched_items,
         }
         results.append(c_dict)
 
@@ -379,7 +436,7 @@ def upsert_clusters_and_items(supabase: Client, clusters_data: List[Dict[str, An
         cluster_id = c_res.data[0]["id"]
         total_clusters += 1
 
-        # 2. trend_items upsert
+        # 2. trend_items upsert (ASO 마이크로 앱 필드 포함 및 Fallback 지원)
         for item in c.get("items", []):
             item_payload = {
                 "cluster_id": cluster_id,
@@ -391,11 +448,34 @@ def upsert_clusters_and_items(supabase: Client, clusters_data: List[Dict[str, An
                 "product_idea": item["product_idea"],
                 "service_idea": item["service_idea"],
                 "sources": item.get("sources", ["google"]),
+                "app_opportunity_score": item.get("app_opportunity_score", 85),
+                "competitor_count": item.get("competitor_count", "LOW"),
+                "ai_app_prompt": item.get("ai_app_prompt", ""),
             }
-            i_res = supabase.table("trend_items").upsert(
-                item_payload,
-                on_conflict="cluster_id,keyword"
-            ).execute()
+            try:
+                i_res = supabase.table("trend_items").upsert(
+                    item_payload,
+                    on_conflict="cluster_id,keyword"
+                ).execute()
+            except Exception as exc:
+                # DB에 아직 ASO 마이크로 앱 컬럼이 추가되지 않은 경우 기존 컬럼으로 자동 Fallback
+                logger.info(f"DB ASO 컬럼 미존재 감지 -> 기본 컬럼으로 안전하게 적재 진행: {item['keyword']}")
+                fallback_payload = {
+                    "cluster_id": cluster_id,
+                    "keyword": item["keyword"],
+                    "trend_type": item["trend_type"],
+                    "score": item["score"],
+                    "growth_rate": item["growth_rate"],
+                    "content_idea": item["content_idea"],
+                    "product_idea": item["product_idea"],
+                    "service_idea": item["service_idea"],
+                    "sources": item.get("sources", ["google"]),
+                }
+                i_res = supabase.table("trend_items").upsert(
+                    fallback_payload,
+                    on_conflict="cluster_id,keyword"
+                ).execute()
+
             if i_res.data:
                 total_items += 1
                 if item["trend_type"] == "SPIKE":

@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS public.trend_items (
     product_idea TEXT NOT NULL,
     service_idea TEXT NOT NULL,
     sources JSONB NOT NULL DEFAULT '[]'::jsonb,
+    app_opportunity_score INT DEFAULT 75 CHECK (app_opportunity_score >= 1 AND app_opportunity_score <= 100),
+    competitor_count TEXT DEFAULT 'LOW' CHECK (competitor_count IN ('LOW', 'MID', 'HIGH')),
+    ai_app_prompt TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_cluster_keyword UNIQUE (cluster_id, keyword)
 );
