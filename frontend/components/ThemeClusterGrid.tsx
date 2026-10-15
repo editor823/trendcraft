@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Layers, Globe, MapPin, Sparkles } from 'lucide-react';
+import { Layers, Sparkles, MapPin, Globe } from 'lucide-react';
 import { TrendCluster, TrendItem } from '@/types/trend';
+import { getKeywordTranslation } from '@/lib/translate';
 
 interface ThemeClusterGridProps {
   clusters: TrendCluster[];
@@ -15,18 +16,22 @@ export function ThemeClusterGrid({
   selectedItemId,
   onSelectKeyword,
 }: ThemeClusterGridProps) {
+  if (!clusters.length) return null;
+
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-emerald-500" />
-          <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-            AI 테마 클러스터 네비게이터
-          </h2>
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+          <Layers className="w-5 h-5" />
         </div>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          연관 키워드 군집화 결과 ({clusters.length}개 메인 테마)
-        </span>
+        <div>
+          <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+            테마별 AI 트렌드 클러스터
+          </h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            연관도 높은 키워드를 하나로 묶은 상위 비즈니스 테마 보드입니다
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -61,30 +66,42 @@ export function ThemeClusterGrid({
                 <Sparkles className="w-3 h-3 text-indigo-400" />
                 소속 키워드 클릭 시 실행 카드 보기
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 {cluster.trend_items.map((item) => {
                   const active = item.id === selectedItemId;
+                  const trans = getKeywordTranslation(item.keyword);
                   return (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => onSelectKeyword(item, cluster.cluster_name)}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 border ${
+                      className={`text-xs px-3 py-2 rounded-xl font-medium transition-all flex items-center justify-between gap-2 border text-left ${
                         active
                           ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
                           : 'bg-zinc-50 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700 hover:border-indigo-400'
                       }`}
                     >
-                      <span>{item.keyword}</span>
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{trans.original}</span>
+                        {trans.translation && (
+                          <span
+                            className={`text-[11px] font-normal mt-0.5 ${
+                              active ? 'text-indigo-100' : 'text-zinc-500 dark:text-zinc-400'
+                            }`}
+                          >
+                            ({trans.translation})
+                          </span>
+                        )}
+                      </div>
                       <span
-                        className={`text-[10px] px-1 rounded ${
+                        className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 font-medium ${
                           item.trend_type === 'SPIKE'
                             ? active
-                              ? 'bg-indigo-800 text-indigo-100'
-                              : 'bg-indigo-500/15 text-indigo-400'
+                              ? 'bg-white/20 text-white'
+                              : 'bg-indigo-500/15 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20'
                             : active
-                            ? 'bg-indigo-800 text-emerald-200'
-                            : 'bg-emerald-500/15 text-emerald-400'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                         }`}
                       >
                         {item.trend_type === 'SPIKE' ? '급상승' : '스테디'}

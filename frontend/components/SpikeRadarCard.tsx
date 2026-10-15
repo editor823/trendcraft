@@ -3,6 +3,7 @@
 import React from 'react';
 import { Flame, ArrowUpRight, Sparkles } from 'lucide-react';
 import { TrendItem } from '@/types/trend';
+import { getKeywordTranslation } from '@/lib/translate';
 
 interface SpikeRadarCardProps {
   items: (TrendItem & { clusterName?: string; region?: string })[];
@@ -40,8 +41,7 @@ export function SpikeRadarCard({ items, selectedItemId, onSelectKeyword }: Spike
             </p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-          <Sparkles className="w-3.5 h-3.5" />
+        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
           SPIKE RADAR
         </span>
       </div>
@@ -49,6 +49,7 @@ export function SpikeRadarCard({ items, selectedItemId, onSelectKeyword }: Spike
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {topSpikes.map((item, idx) => {
           const isSelected = item.id === selectedItemId;
+          const trans = getKeywordTranslation(item.keyword);
           return (
             <button
               key={item.id}
@@ -71,15 +72,20 @@ export function SpikeRadarCard({ items, selectedItemId, onSelectKeyword }: Spike
                   {idx + 1}
                 </span>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                      {item.keyword}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                      {trans.original}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-500 shrink-0">
                       {item.growth_rate}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  {trans.translation && (
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal truncate mt-0.5">
+                      ({trans.translation})
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     {item.sources.map((src) => {
                       const meta = SOURCE_LABELS[src] || { label: src, badgeClass: '' };
                       return (
@@ -94,11 +100,10 @@ export function SpikeRadarCard({ items, selectedItemId, onSelectKeyword }: Spike
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                  {item.score}점
-                </span>
-                <ArrowUpRight className="w-4 h-4 text-zinc-400 group-hover:text-indigo-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+
+              <div className="text-right shrink-0">
+                <span className="text-xs font-bold text-indigo-500 block">{item.score}점</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-indigo-400 transition-colors inline-block mt-1" />
               </div>
             </button>
           );

@@ -1,8 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Clapperboard, Package, Laptop, Copy, Check, Sparkles } from 'lucide-react';
+import {
+  Sparkles,
+  Clapperboard,
+  Package,
+  Laptop,
+  Copy,
+  Check,
+  Share2,
+} from 'lucide-react';
 import { TrendItem } from '@/types/trend';
+import { getKeywordTranslation } from '@/lib/translate';
 
 interface ActionInsightCardProps {
   item: TrendItem | null;
@@ -19,6 +28,8 @@ export function ActionInsightCard({ item, clusterName }: ActionInsightCardProps)
       </div>
     );
   }
+
+  const trans = getKeywordTranslation(item.keyword);
 
   const handleCopy = async (key: string, text: string) => {
     try {
@@ -54,36 +65,46 @@ export function ActionInsightCard({ item, clusterName }: ActionInsightCardProps)
     },
   ];
 
-  const fullSummaryText = `[TrendCraft 실행 리포트] 키워드: ${item.keyword} (${item.growth_rate}, ${item.score}점)
+  const fullSummaryText = `[TrendCraft 실행 리포트] 키워드: ${item.keyword} ${trans.translation ? `(${trans.translation})` : ''} (${item.growth_rate}, ${item.score}점)
 - 🎬 콘텐츠: ${item.content_idea}
 - 📦 상품 기획: ${item.product_idea}
 - 💻 서비스/SaaS: ${item.service_idea}`;
 
   return (
-    <aside className="rounded-2xl border-2 border-indigo-500/40 bg-white dark:bg-zinc-900 p-5 shadow-lg space-y-4">
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/95 p-6 shadow-md space-y-5">
+      {/* 상단 헤더 */}
       <div className="flex items-start justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1.5">
             <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400">
               <Sparkles className="w-3 h-3" />
               무엇을 만들까? Action Insight
             </span>
             {clusterName && (
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                 · {clusterName}
               </span>
             )}
           </div>
-          <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <span>{item.keyword}</span>
-            <span className="text-sm font-bold text-emerald-500">{item.growth_rate}</span>
-          </h2>
+          <div className="flex flex-col">
+            <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+              <span>{trans.original}</span>
+              <span className="text-sm font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500">
+                {item.growth_rate}
+              </span>
+            </h2>
+            {trans.translation && (
+              <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
+                ({trans.translation})
+              </span>
+            )}
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => handleCopy('all', fullSummaryText)}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shrink-0 shadow-sm"
         >
           {copiedKey === 'all' ? (
             <>
@@ -97,40 +118,48 @@ export function ActionInsightCard({ item, clusterName }: ActionInsightCardProps)
         </button>
       </div>
 
-      <div className="space-y-3">
-        {cards.map(({ key, badge, accent, content }) => (
+      {/* 3대 실행 카드 */}
+      <div className="space-y-4">
+        {cards.map(({ key, icon: Icon, badge, accent, content }) => (
           <div
             key={key}
-            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/60 p-4 space-y-2"
+            className="rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${accent}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                <Icon className="w-4 h-4 text-indigo-500" />
                 {badge}
               </span>
               <button
                 type="button"
                 onClick={() => handleCopy(key, content)}
-                className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 px-2 py-1 rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+                className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors inline-flex items-center gap-1"
               >
                 {copiedKey === key ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-emerald-500 font-semibold">복사 완료</span>
+                    <Check className="w-3 h-3 text-emerald-500" />
+                    <span className="text-emerald-500 font-semibold">복사됨</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy className="w-3 h-3" />
                     <span>복사</span>
                   </>
                 )}
               </button>
             </div>
-            <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
+            <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-normal">
               {content}
             </p>
           </div>
         ))}
       </div>
-    </aside>
+
+      {/* 하단 점수 및 팁 */}
+      <div className="flex items-center justify-between text-xs text-zinc-400 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+        <span>트렌드 파급력 스코어: <strong className="text-indigo-500 font-bold">{item.score}점</strong></span>
+        <span>출처: {item.sources.join(', ').toUpperCase()}</span>
+      </div>
+    </div>
   );
 }
