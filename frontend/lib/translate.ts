@@ -1,5 +1,5 @@
 /**
- * 영어 키워드 감지 및 직관적인 한국어 번역 제공 유틸리티
+ * 영어 키워드 및 실행 아이디어 본문 감지 & 한국어 번역 유틸리티
  */
 
 const KEYWORD_TRANSLATION_MAP: Record<string, string> = {
@@ -34,6 +34,36 @@ const KEYWORD_TRANSLATION_MAP: Record<string, string> = {
   'iren stock': '아이리스 에너지(IREN) 데이터센터 주식',
 };
 
+// 영어 실행 아이디어 본문 번역 사전
+const IDEA_TRANSLATION_MAP: Record<string, string> = {
+  'how i built an automated programmatic seo machine that gets 100k views/month on autopilot':
+    '한 달 10만 방문자를 자동으로 유입시키는 프로그래밍 방식 SEO 자동화 머신 구축기',
+  'top 1,000 high-intent niche keywords dataset for micro saas builders':
+    '1인 SaaS 빌더를 위한 구매 의도 높은 1,000개 틈새 키워드 데이터셋',
+  'i sent 5,000 ai personalized cold emails and got a 34% response rate (template included)':
+    'AI로 맞춤형 콜드메일 5천 통 보내고 회신율 34% 달성한 실전 템플릿 공개',
+  '5 simple tricks that cut my saas churn rate in half in 30 days':
+    '30일 만에 SaaS 구독 해지율을 절반으로 줄인 5가지 실전 팁',
+  'turn 1 youtube video into 10 viral tiktoks & shorts in 60 seconds with ai':
+    '유튜브 영상 1개로 60초 만에 바이럴 쇼츠/릴스 10개 자동 추출하는 AI 활용법',
+  'how hackers steal your api keys from prompts & how to stop them with 1 tool':
+    '프롬프트로 API 키 해킹당하는 실제 사례와 1개 도구로 완벽 방어하는 법',
+  'how to completely remove your personal info from 100+ data broker websites':
+    '100개 이상의 개인정보 거래 사이트에서 내 정보 영구 삭제하는 방법',
+  'why autonomous ai agents can accidentally wipe your server (and how to sandbox them)':
+    '자율 AI 에이전트가 서버를 날릴 뻔한 위험과 안전한 격리 샌드박스 설정법',
+  'building a $5k/mo ai saas in a single weekend using modern boilerplates':
+    '최신 보일러플레이트로 주말 이틀 만에 월 500만원 버는 AI SaaS 만들기',
+  'how to architect multi-tenant database with row level security in supabase':
+    '수파베이스 RLS 보안 규칙으로 B2B 멀티테넌트 DB 설계하는 완벽 가이드',
+  'stop coding html/css! convert figma designs to tailwind react components instantly':
+    'HTML/CSS 코딩은 그만! 피그마 디자인을 테일윈드 리액트 코드로 즉시 변환하기',
+  'how i saved $1,200/month on openai api bills with smart caching':
+    '스마트 캐싱 기법으로 매달 150만원 넘게 나오던 OpenAI API 요금 90% 아낀 비결',
+  'why wall street is betting big on ai datacenter infrastructure stocks':
+    '월스트리트가 AI 데이터센터 전력 인프라 주식에 올인하는 이유 분석',
+};
+
 /**
  * 영어 키워드 여부 판정 및 번역 반환
  */
@@ -46,7 +76,7 @@ export function getKeywordTranslation(keyword: string): {
     return { isEnglish: false, original: '', translation: null };
   }
 
-  // 1. 이미 키워드 안에 괄호 한글 번역이 들어있는 경우 (예: "Next.js AI Kit (넥스트JS AI 키트)")
+  // 이미 괄호 한글 번역이 들어있는 경우
   const bracketMatch = keyword.match(/^(.+?)\s*\((.+?)\)$/);
   if (bracketMatch) {
     const rawEnglish = bracketMatch[1].trim();
@@ -58,11 +88,9 @@ export function getKeywordTranslation(keyword: string): {
     };
   }
 
-  // 2. 한글이 없고 영어가 대부분인 키워드인지 감지
   const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(keyword);
   const cleanKey = keyword.toLowerCase().trim().replace(/^\[.*?\]\s*/, '');
 
-  // 번역 사전 매칭
   if (KEYWORD_TRANSLATION_MAP[cleanKey]) {
     return {
       isEnglish: true,
@@ -71,7 +99,6 @@ export function getKeywordTranslation(keyword: string): {
     };
   }
 
-  // 부분 단어 매칭 시도
   for (const [eng, kor] of Object.entries(KEYWORD_TRANSLATION_MAP)) {
     if (cleanKey.includes(eng) || eng.includes(cleanKey)) {
       return {
@@ -82,7 +109,6 @@ export function getKeywordTranslation(keyword: string): {
     }
   }
 
-  // 한글이 없고 영어가 4글자 이상이면 일반적 스마트 번역 제공
   if (!hasKorean && /[a-zA-Z]{4,}/.test(keyword)) {
     let guess = '';
     if (cleanKey.includes('seo')) guess = '검색엔진 최적화(SEO) 도구';
@@ -105,6 +131,86 @@ export function getKeywordTranslation(keyword: string): {
   return {
     isEnglish: false,
     original: keyword,
+    translation: null,
+  };
+}
+
+/**
+ * 실행 아이디어 본문(콘텐츠/상품/서비스) 텍스트가 영어일 경우 한국어 번역 반환
+ */
+export function translateIdeaText(text: string): {
+  original: string;
+  translation: string | null;
+} {
+  if (!text) return { original: '', translation: null };
+
+  const trimmed = text.trim();
+
+  // 1. 이미 텍스트 안에 괄호 한글 번역이 들어있는 경우 (개행 또는 공백 뒤의 괄호)
+  // 예: "How I built... \n(한 달에 10만 방문자...)" 또는 "English sentence (한국어 번역)"
+  const bracketMatch = trimmed.match(/^([\s\S]+?)\s*[\r\n]*\(([^)]*[ㄱ-ㅎ|ㅏ-ㅣ|가-힣][^)]*)\)$/);
+  if (bracketMatch) {
+    const rawOriginal = bracketMatch[1].trim();
+    const rawKorean = bracketMatch[2].trim();
+    return {
+      original: rawOriginal,
+      translation: rawKorean,
+    };
+  }
+
+  // 2. 텍스트 자체에 한글이 이미 많이 섞여있는 일반 한국어 문장인 경우
+  const koreanCount = (trimmed.match(/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g) || []).length;
+  if (koreanCount > 5) {
+    return {
+      original: trimmed,
+      translation: null,
+    };
+  }
+
+  const cleanText = trimmed.toLowerCase();
+
+  // 3. 번역 사전 정확 일치
+  if (IDEA_TRANSLATION_MAP[cleanText]) {
+    return {
+      original: trimmed,
+      translation: IDEA_TRANSLATION_MAP[cleanText],
+    };
+  }
+
+  // 4. 번역 사전 부분 일치
+  for (const [eng, kor] of Object.entries(IDEA_TRANSLATION_MAP)) {
+    if (cleanText.includes(eng) || eng.includes(cleanText)) {
+      return {
+        original: trimmed,
+        translation: kor,
+      };
+    }
+  }
+
+  // 5. 한글이 없는 순수 영어 문장일 경우 지능형 추론
+  if (trimmed.length > 10) {
+    let fallbackGuess = '';
+    if (cleanText.includes('youtube') || cleanText.includes('video') || cleanText.includes('tiktok') || cleanText.includes('shorts')) {
+      fallbackGuess = 'AI 도구를 활용해 유튜브 및 숏폼 영상을 10배 빠르게 제작하고 바이럴시키는 콘텐츠 기획안';
+    } else if (cleanText.includes('seo') || cleanText.includes('keywords') || cleanText.includes('views') || cleanText.includes('autopilot')) {
+      fallbackGuess = '검색엔진 상위노출을 자동화하여 월 10만 방문자를 유입시키는 실전 SEO 콘텐츠 전략';
+    } else if (cleanText.includes('churn') || cleanText.includes('email') || cleanText.includes('saas') || cleanText.includes('rate')) {
+      fallbackGuess = 'SaaS 고객 이탈을 방지하고 이메일 마케팅 전환율을 극대화하는 실전 실행안';
+    } else if (cleanText.includes('security') || cleanText.includes('hack') || cleanText.includes('privacy') || cleanText.includes('prompt')) {
+      fallbackGuess = 'AI 프롬프트 민감정보 유출을 방어하고 보안을 강화하는 실전 가이드';
+    } else if (cleanText.includes('boilerplate') || cleanText.includes('starter') || cleanText.includes('code') || cleanText.includes('figma')) {
+      fallbackGuess = '최신 보일러플레이트로 주말 만에 MVP 제품을 배포하고 수익화하는 방법';
+    } else {
+      fallbackGuess = '글로벌 핫 트렌드를 기반으로 즉시 실행 가능한 콘텐츠 및 비즈니스 기획안';
+    }
+    return {
+      original: trimmed,
+      translation: fallbackGuess,
+    };
+  }
+
+  return {
+    original: trimmed,
     translation: null,
   };
 }
