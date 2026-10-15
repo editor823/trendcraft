@@ -1,0 +1,7 @@
+requests>=2.32.3
+feedparser>=6.0.11
+google-genai>=1.2.0
+supabase>=2.10.0
+pydantic>=2.9.2
+python-dotenv>=1.0.1
+tenacity>=9.0.0

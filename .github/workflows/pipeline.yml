@@ -1,0 +1,76 @@
+name: TrendCraft Automated Data & AI Pipeline
+
+on:
+  schedule:
+    # 1. Daily Job: 매일 오전 6시(KST) = 전날 21:00 UTC
+    - cron: '0 21 * * *'
+    # 2. Weekly Job: 매주 월요일 오전 7시(KST) = 일요일 22:00 UTC
+    - cron: '0 22 * * 0'
+    # 3. Monthly Job: 매월 1일 오전 7시 30분(KST) = 전월 말일/1일 22:30 UTC
+    - cron: '30 22 1 * *'
+  workflow_dispatch:
+    inputs:
+      period:
+        description: '실행할 리포트 주기 선택 (daily | weekly | monthly)'
+        required: true
+        default: 'daily'
+        type: choice
+        options:
+          - daily
+          - weekly
+          - monthly
+
+permissions:
+  contents: read
+
+jobs:
+  collect-and-analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'pipeline/requirements.txt'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r pipeline/requirements.txt
+
+      - name: Determine Execution Period (Daily / Weekly / Monthly)
+        id: set_period
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "PERIOD=${{ github.event.inputs.period }}" >> $GITHUB_ENV
+          elif [ "${{ github.event.schedule }}" = "0 22 * * 0" ]; then
+            echo "PERIOD=weekly" >> $GITHUB_ENV
+          elif [ "${{ github.event.schedule }}" = "30 22 1 * *" ]; then
+            echo "PERIOD=monthly" >> $GITHUB_ENV
+          else
+            echo "PERIOD=daily" >> $GITHUB_ENV
+          fi
+
+      - name: Step 1 - Run Raw Trend Collector (daily 수집)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          python pipeline/collector.py
+
+      - name: Step 2 - Run Gemini 2.5 Flash AI Analyzer (${{ env.PERIOD }})
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python pipeline/analyzer.py --period ${{ env.PERIOD }}
