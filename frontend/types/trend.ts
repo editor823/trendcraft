@@ -17,6 +17,8 @@ export interface TrendItem {
   app_opportunity_score?: number;
   competitor_count?: 'LOW' | 'MID' | 'HIGH';
   ai_app_prompt?: string;
+  unbundled_target?: string;
+  reverse_eng_prompt?: string;
 }
 
 export interface TrendCluster {

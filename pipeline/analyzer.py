@@ -98,6 +98,86 @@ def generate_aso_micro_app_spec(keyword: str, service_idea: str, score: int) -> 
 
 
 # ---------------------------------------------------------------------------
+# AI 역공학(Reverse Engineering) & 마이크로 SaaS 언번들링 스펙 생성기
+# ---------------------------------------------------------------------------
+def generate_reverse_eng_spec(keyword: str, service_idea: str) -> Dict[str, Any]:
+    """거대 서비스(노션, 캔바, 어도비, 지라, 재피어 등)의 무거운 기능을 
+    1인 개발자가 가볍게 떼어내어 복제할 수 있는 '역공학/언번들링 MVP 기획' 및 완성형 프롬프트 도출
+    """
+    key_clean = keyword.strip()
+    key_lower = key_clean.lower()
+
+    if any(k in key_lower or k in key_clean for k in ["보일러플레이트", "기획", "정리", "saas", "starter"]):
+        target = "Notion (무거운 문서/위키/데이터베이스 기능)"
+        prompt = f"""# [Claude Code / Cursor 전용] Notion 언번들링: 1인 빌더용 초경량 {key_clean} 웹앱 클론
+
+## 🎯 역공학 대상
+- **공룡 서비스**: Notion (무거운 관계형 DB, 복잡한 블록 에디터)
+- **언번들링 전략**: 노션의 90% 불필요한 기능을 제거하고, '{key_clean}' 특화 1인 빌더 체크리스트 & 칸반보드만 초경량 PWA로 복제.
+
+## 🛠️ 추천 오픈소스 & 테크 스택
+- Framework: Next.js 14 (App Router) + Tailwind CSS + Lucide Icons
+- 데이터 저장: LocalStorage (서버리스 0원 유지비)
+
+## 🚀 필수 핵심 기능
+1. [3열 칸반 보드]: Todo / In Progress / Done 드래그 앤 드롭 지원.
+2. [사전 탑재 템플릿]: {key_clean} 관련 20개 실전 실행 항목 기본 제공.
+3. [마크다운 내보내기]: 전체 진행 상황을 깔끔한 README.md 마크다운으로 1초 만에 복사.
+"""
+    elif any(k in key_lower or k in key_clean for k in ["video", "clip", "figma", "사진", "쇼츠"]):
+        target = "Canva & Adobe Premiere Pro (무거운 타임라인 그래픽/영상 편집기)"
+        prompt = f"""# [Claude Code / Cursor 전용] Canva/Adobe 언번들링: 숏폼 바이럴 후킹 {key_clean} 생성기 클론
+
+## 🎯 역공학 대상
+- **공룡 서비스**: Canva & Adobe Premiere (무거운 타임라인 및 느린 렌더링)
+- **언번들링 전략**: 무거운 편집 툴을 떼어내고, '{key_clean}' 중심의 인스타/유튜브 쇼츠용 볼드 후킹 자막 합성만 브라우저 Canvas에서 0.1초 만에 처리.
+
+## 🛠️ 추천 테크 스택
+- Frontend: Next.js 14 + Tailwind CSS + HTML5 Canvas API
+- 폰트: Pretendard ExtraBold 웹폰트
+
+## 🚀 필수 핵심 기능
+1. [이미지 드래그 업로드]: 배경 사진/영상 프레임 로드.
+2. [후킹 자막 스타일러]: 볼드 자막 및 텍스트 외곽선 즉시 캔버스 합성.
+3. [원클릭 PNG 다운로드]: 1080x1920 세로 비율 PNG 즉시 저장.
+"""
+    elif any(k in key_lower or k in key_clean for k in ["email", "churn", "도어락", "전화", "응대", "자동"]):
+        target = "Zapier & Make (월 $30 고비용 멀티스텝 자동화 플랫폼)"
+        prompt = f"""# [Claude Code / Cursor 전용] Zapier 언번들링: 초경량 웹훅 이벤트 {key_clean} 알림기 클론
+
+## 🎯 역공학 대상
+- **공룡 서비스**: Zapier & Make (월 3만원 이상의 비싼 멀티스텝 자동화)
+- **언번들링 전략**: 무거운 시각적 노드 빌더를 떼어내고, 단 1개의 웹훅 URL로 알림을 전송하는 단일 파이프라인 마이크로 SaaS 구축.
+
+## 🛠️ 추천 테크 스택
+- API Server: Next.js 14 Route Handlers (/api/webhook)
+- 메일/알림 전송: Resend API 또는 Discord/Slack Webhook URL
+- 프론트엔드: Tailwind 기반 테스트 대시보드 (curl 명령어 자동 생성)
+"""
+    else:
+        target = "Airtable & Notion (무거운 올인원 비즈니스 플랫폼)"
+        prompt = f"""# [Claude Code / Cursor 전용] 거대 SaaS 언번들링: {key_clean} 마이크로 프로토타입 클론
+
+## 🎯 역공학 대상
+- **타겟 공룡 서비스**: {target}
+- **언번들링 전략**: 거대 플랫폼의 복잡한 온보딩과 무거운 기능을 떼어내고, '{key_clean}' 문제 해결에만 100% 집중하는 독립 웹앱 재창조.
+
+## 💡 해결할 단일 핵심 가치
+- {service_idea}
+
+## 🛠️ 기술 스택 & 개발 지시사항
+- Framework: Next.js 14 (App Router) + Tailwind CSS + Lucide Icons
+- 상태 관리: React useState 기반 (로컬 저장소 즉시 구동)
+- 코딩 툴에서 바로 실행할 수 있도록 완결된 단일 파일 형태의 코드로 작성해줘.
+"""
+
+    return {
+        "unbundled_target": target,
+        "reverse_eng_prompt": prompt.strip(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # 고품질 시맨틱 클러스터 & 3대 실행 아이디어 생성기 (30+ items, SPIKE 15+ / LONG_TAIL 15+)
 # ---------------------------------------------------------------------------
 def generate_enriched_trend_clusters(period_type: str, raw_count: int) -> List[Dict[str, Any]]:
@@ -383,14 +463,20 @@ def generate_enriched_trend_clusters(period_type: str, raw_count: int) -> List[D
     for bp in clusters_blueprint:
         enriched_items = []
         for itm in bp["items"]:
-            # 유튜브 ASO 마이크로 앱 공장 스펙 자동 생성 및 병합
+            # 유튜브 ASO 마이크로 앱 공장 스펙 자동 생성
             aso_data = generate_aso_micro_app_spec(
                 itm["keyword"],
                 itm.get("service_idea", ""),
                 itm.get("score", 85)
             )
+            # AI 역공학 & 언번들링 마이크로 SaaS 스펙 자동 생성
+            rev_data = generate_reverse_eng_spec(
+                itm["keyword"],
+                itm.get("service_idea", "")
+            )
             item_copy = dict(itm)
             item_copy.update(aso_data)
+            item_copy.update(rev_data)
             enriched_items.append(item_copy)
 
         c_dict = {
@@ -436,7 +522,7 @@ def upsert_clusters_and_items(supabase: Client, clusters_data: List[Dict[str, An
         cluster_id = c_res.data[0]["id"]
         total_clusters += 1
 
-        # 2. trend_items upsert (ASO 마이크로 앱 필드 포함 및 Fallback 지원)
+        # 2. trend_items upsert (ASO 및 역공학 마이크로 SaaS 필드 포함 및 Fallback 지원)
         for item in c.get("items", []):
             item_payload = {
                 "cluster_id": cluster_id,
@@ -451,6 +537,8 @@ def upsert_clusters_and_items(supabase: Client, clusters_data: List[Dict[str, An
                 "app_opportunity_score": item.get("app_opportunity_score", 85),
                 "competitor_count": item.get("competitor_count", "LOW"),
                 "ai_app_prompt": item.get("ai_app_prompt", ""),
+                "unbundled_target": item.get("unbundled_target", ""),
+                "reverse_eng_prompt": item.get("reverse_eng_prompt", ""),
             }
             try:
                 i_res = supabase.table("trend_items").upsert(
