@@ -1,0 +1,2015 @@
+'use client';
+
+// ============================================================================
+// TrendCraft: [마케팅 연구소 (Marketing Lab)] 메인 프론트엔드 컴포넌트
+// File: frontend/components/MarketingLab.tsx
+// Stack: Next.js (App Router) + Tailwind CSS + Lucide Icons + Supabase
+// ============================================================================
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  FlaskConical,
+  Flame,
+  TrendingUp,
+  Compass,
+  Sparkles,
+  ArrowRight,
+  Copy,
+  Check,
+  Bookmark,
+  Trash2,
+  Pin,
+  Search,
+  RefreshCw,
+  Layers,
+  Eye,
+  Heart,
+  MessageSquare,
+  Share2,
+  Lightbulb,
+  LayoutTemplate,
+  MessageCircleQuestion,
+  Database,
+  Plus,
+  ExternalLink,
+  CheckCircle2,
+  Wand2,
+  FileText,
+  Tag,
+  ChevronRight,
+  SlidersHorizontal,
+} from 'lucide-react';
+
+import {
+  SnsChannel,
+  ViralPattern,
+  PostViralType,
+  MarketingLabPost,
+  MarketingLabIdea,
+  SNS_CHANNELS,
+  VIRAL_PATTERNS,
+} from '../types/marketing';
+
+// ----------------------------------------------------------------------------
+// Supabase REST 연동 헬퍼 (환경변수 설정 시 실제 DB 연동, 미설정 시 내장 시드 폴백)
+// 프로젝트에서 @supabase/supabase-js 클라이언트를 직접 주입할 수도 있습니다.
+// ----------------------------------------------------------------------------
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const IS_SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+async function supabaseRequest<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T | null> {
+  if (!IS_SUPABASE_CONFIGURED) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...options,
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) throw new Error(`Supabase HTTP ${res.status}`);
+    return (await res.json()) as T;
+  } catch (error) {
+    console.warn('[MarketingLab] Supabase 연동 폴백 모드 전환:', error);
+    return null;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 초기 내장 시드 데이터 (7대 SNS 채널 × 3대 바이럴 유형 대표 레퍼런스)
+// ----------------------------------------------------------------------------
+export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
+  // 1. YouTube
+  {
+    id: 'post-yt-1',
+    channel: 'youtube',
+    viral_type: 'spike',
+    title:
+      '월급 250만원 직장인이 퇴근 후 하루 40분으로 자동화 수익 파이프라인 만든 현실 과정 (엑셀 템플릿 공개)',
+    hook_copy:
+      '“아직도 부업을 시간 갈아 넣어 하시나요? 제가 지난 6개월간 직접 깨지며 만든 노코드 자동화 시트, 오늘 조건 없이 다 풉니다.”',
+    author_name: '디지털노마드 연구소',
+    source_url: 'https://youtube.com',
+    views_count: 942000,
+    likes_count: 48200,
+    comments_count: 6410,
+    shares_count: 19300,
+    engagement_rate: 14.85,
+    growth_velocity: '+1,640% (48h 내 급상승 1위)',
+    keywords: ['#직장인부업', '#노코드자동화', '#파이프라인', '#생산성툴', '#유튜브떡상공식'],
+    ai_hook_point:
+      '구체적인 숫자(월급 250만원, 하루 40분, 6개월)와 손실 회피 심리(“아직도 시간 갈아 넣어 하시나요?”)를 결합해 초반 5초 이탈률을 12% 이하로 방어함.',
+    ai_visual_structure:
+      '좌측에 붉은색 마이너스 통장 잔고, 우측에 초록색 입금 알림 대시보드를 배치한 고대비 분할 썸네일 + 노란색 4단어 핵심 카피(“하루 40분 자동화”)로 모바일 시인성 극대화.',
+    ai_comment_trigger:
+      '고정 댓글에 “본인의 현재 직무와 하루 가용 시간을 남겨주시면 맞춤형 자동화 루틴 PDF와 시트 사본 링크를 보내드립니다”라는 가치 교환형 콜투액션(CTA) 배치.',
+    published_at: '2026-10-14T09:00:00Z',
+  },
+  {
+    id: 'post-yt-2',
+    channel: 'youtube',
+    viral_type: 'steady',
+    title:
+      '비전공자 마케터가 AI 에이전트 3개로 주간 리포트 시간을 8시간에서 15분으로 줄인 실전 워크플로우',
+    hook_copy:
+      '“챗GPT한테 그냥 요약해달라고 하면 100% 실패합니다. 실무자가 바로 보고서에 복붙하는 프롬프트 체이닝 3단계입니다.”',
+    author_name: '그로스해킹 아카이브',
+    source_url: 'https://youtube.com',
+    views_count: 385000,
+    likes_count: 21900,
+    comments_count: 1840,
+    shares_count: 11200,
+    engagement_rate: 9.6,
+    growth_velocity: '주간 평균 +4.5만 조회수 지속 유입',
+    keywords: ['#AI마케팅', '#업무자동화', '#프롬프트엔지니어링', '#마케터실무', '#생산성'],
+    ai_hook_point:
+      '흔한 통념(“그냥 요약 시키기”)을 부정하며 시작해 기존 AI 활용에 실망했던 실무자 층의 호기심을 즉각 자극함.',
+    ai_visual_structure:
+      '화면 녹화 70% + 발표자 PIP 30% 구도로 신뢰도를 높이고, 챕터별 타임스탬프와 Before/After 소요 시간 타이머 그래픽을 상단에 고정 배치함.',
+    ai_comment_trigger:
+      '“여러분 팀에서 가장 시간 많이 잡아먹는 반복 업무 1가지는 무엇인가요? 댓글 최다 득표 업무를 다음 영상에서 자동화해 드립니다”로 차기 기획과 댓글 참여를 동시 달성.',
+    published_at: '2026-10-10T12:00:00Z',
+  },
+  {
+    id: 'post-yt-3',
+    channel: 'youtube',
+    viral_type: 'long_tail',
+    title:
+      '2026 구글 애널리틱스 GA4 이벤트 트래킹 & 전환 퍼널 세팅 바이블 (초보자 1시간 마스터)',
+    hook_copy:
+      '“이 영상 하나만 북마크해 두세요. 외주 대행사에 150만원 주고 맡기던 GA4 전환 세팅을 60분 만에 직접 끝내드립니다.”',
+    author_name: '데이터마케팅 스쿨',
+    source_url: 'https://youtube.com',
+    views_count: 218000,
+    likes_count: 14300,
+    comments_count: 920,
+    shares_count: 16800,
+    engagement_rate: 11.2,
+    growth_velocity: '유튜브 검색 1위 11개월 연속 유지',
+    keywords: ['#GA4세팅', '#구글애널리틱스', '#퍼포먼스마케팅', '#전환추적', '#GTM가이드'],
+    ai_hook_point:
+      '외주 비용(150만원)이라는 명확한 금전적 대체 가치를 제시하여 시청을 곧 비용 절감으로 인식하게 만듦.',
+    ai_visual_structure:
+      '단계별 체크리스트 오버레이와 확대 하이라이트 줌(Zoom-in) 편집을 활용해 따라 하기 쉬운 튜토리얼 UX를 구현, 평균 시청 지속 시간 24분 기록.',
+    ai_comment_trigger:
+      '영상 설명란에 타임라인별 오류 해결 Q&A 인덱스를 제공하고 “막히는 구간 타임코드를 댓글로 달아주시면 24시간 내 답변드립니다”로 검색 가중치 상승.',
+    published_at: '2026-09-20T08:30:00Z',
+  },
+
+  // 2. Naver Blog
+  {
+    id: 'post-nb-1',
+    channel: 'naver_blog',
+    viral_type: 'spike',
+    title:
+      '성수동 팝업스토어 오픈 3일 만에 대기줄 400명 만든 로컬 바이럴 체크리스트 5가지 (현장 사진有)',
+    hook_copy:
+      '“광고비 3,000만원 태우고도 파리 날리는 팝업과 오픈런 2시간 대기줄 만드는 팝업은 딱 ‘입구 동선 3미터’에서 갈립니다.”',
+    author_name: '브랜드 디렉터 제이',
+    source_url: 'https://section.blog.naver.com',
+    views_count: 124000,
+    likes_count: 3420,
+    comments_count: 890,
+    shares_count: 4120,
+    engagement_rate: 13.4,
+    growth_velocity: '스마트블록 상단 노출 후 일 조회수 +890% 폭발',
+    keywords: ['#성수동팝업', '#팝업스토어기획', '#오프라인마케팅', '#브랜드마케팅', '#공간기획'],
+    ai_hook_point:
+      '구체적 지역명(성수동) + 압도적 수치(대기줄 400명) + 의외의 핵심 원인(입구 동선 3미터)으로 스마트블록 클릭률(CTR)을 압도함.',
+    ai_visual_structure:
+      '직접 촬영한 현장 동선 도식화 이미지 8장과 3줄 요약 인용구 블록을 교차 배치하여 모바일 스크롤 피로도를 낮추고 체류시간 4분 30초 달성.',
+    ai_comment_trigger:
+      '포스팅 하단에 “팝업 오픈 전 필수 점검 엑셀 시트(32개 항목)가 필요하신 분은 공감+비밀댓글로 이메일 남겨주세요” 장치로 댓글 890개 돌파.',
+    published_at: '2026-10-13T11:20:00Z',
+  },
+  {
+    id: 'post-nb-2',
+    channel: 'naver_blog',
+    viral_type: 'long_tail',
+    title:
+      '스마트스토어 상세페이지 전환율 1.2%에서 6.8%로 끌어올린 첫 화면 GIF 배치 공식 완벽 정리',
+    hook_copy:
+      '“상세페이지 맨 위에 브랜드 철학부터 적고 계신가요? 고객은 2.5초 안에 내 문제가 해결되는지만 보고 뒤로가기를 누릅니다.”',
+    author_name: '이커머스 연금술사',
+    source_url: 'https://section.blog.naver.com',
+    views_count: 189000,
+    likes_count: 5120,
+    comments_count: 1120,
+    shares_count: 6840,
+    engagement_rate: 10.85,
+    growth_velocity: '네이버 검색 월간 1.6만 유입 스테디셀러',
+    keywords: ['#스마트스토어상세페이지', '#전환율높이는법', '#상세페이지기획', '#셀러꿀팁', '#GIF활용'],
+    ai_hook_point:
+      '셀러들의 가장 흔한 실수(브랜드 철학 나열)를 찌르고 구체적인 전환율 상승 수치(1.2% → 6.8%)를 제목 전면에 내세움.',
+    ai_visual_structure:
+      '잘된 상세페이지 vs 망한 상세페이지 와이어프레임 비교 표와 GIF 용량 최적화 가이드를 소제목(H2/H3) 구조로 일목요연하게 정리.',
+    ai_comment_trigger:
+      '“현재 운영 중인 스토어 카테고리를 댓글로 남겨주시면 해당 업종에 가장 잘 먹히는 첫 화면 후킹 문구 3가지를 추천해 드립니다”로 진성 셀러 소통 유도.',
+    published_at: '2026-10-02T15:00:00Z',
+  },
+
+  // 3. SEO Blog (WordPress / Google)
+  {
+    id: 'post-seo-1',
+    channel: 'seo_blog',
+    viral_type: 'long_tail',
+    title:
+      '2026 B2B SaaS 리드 제너레이션 퍼널 벤치마크 리포트: 콜드메일 대신 오가닉 검색으로 월 400건 문의 만든 구조',
+    hook_copy:
+      '“콜드메일 오픈율이 3% 미만으로 떨어진 지금, 구매 의도가 명확한 B2B 의사결정권자를 데려오는 유일한 자산은 ‘비교형 프로그래매틱 SEO’입니다.”',
+    author_name: 'Growth Engine Lab',
+    source_url: 'https://google.com',
+    views_count: 312000,
+    likes_count: 4200,
+    comments_count: 640,
+    shares_count: 9450,
+    engagement_rate: 12.1,
+    growth_velocity: '구글 스니펫(Featured Snippet) 14개 키워드 동시 점유',
+    keywords: ['#B2BSaaS', '#프로그래매틱SEO', '#리드제너레이션', '#콘텐츠마케팅', '#구글상위노출'],
+    ai_hook_point:
+      '콜드메일의 하락세라는 시장 페인포인트를 데이터로 짚어내고 ‘비교형 프로그래매틱 SEO’라는 명확한 대안 솔루션을 제시함.',
+    ai_visual_structure:
+      '목차(TOC) 스키마 마크업, 핵심 지표 요약 테이블, 인터랙티브 ROI 계산기 위젯을 본문 상단에 배치해 구글 Core Web Vitals 및 체류시간 점수를 극대화.',
+    ai_comment_trigger:
+      '본문 중간(Mid-roll)과 하단에 ‘SaaS 비교 랜딩페이지 HTML/Notion 와이어프레임 키트’ 뉴스레터 구독 폼을 결합해 이메일 전환율 8.4% 기록.',
+    published_at: '2026-09-28T10:00:00Z',
+  },
+  {
+    id: 'post-seo-2',
+    channel: 'seo_blog',
+    viral_type: 'steady',
+    title: '검색엔진과 AI 답변엔진(GEO)에 동시에 인용되는 아티클 구조화 작성법 7단계',
+    hook_copy:
+      '“이제 구글 1페이지 노출만으로는 부족합니다. Perplexity와 ChatGPT 검색이 가장 먼저 인용하는 문장 구조에는 명확한 패턴이 있습니다.”',
+    author_name: 'NextSEO Archive',
+    source_url: 'https://google.com',
+    views_count: 145000,
+    likes_count: 2890,
+    comments_count: 410,
+    shares_count: 5600,
+    engagement_rate: 9.75,
+    growth_velocity: '백링크 340개 자연 획득 및 오가닉 트래픽 월 +38% 성장',
+    keywords: ['#GEO최적화', '#AI검색최적화', '#테크니컬SEO', '#워드프레스블로그', '#콘텐츠구조화'],
+    ai_hook_point:
+      'SEO에서 GEO(Generative Engine Optimization)로의 패러다임 전환을 선점하여 마케터와 블로거들의 북마크 심리를 자극함.',
+    ai_visual_structure:
+      '질문형 H2 헤더 + 45단어 이내의 정의형 첫 문단 + JSON-LD FAQ 스키마 코드 블록을 세트로 제공하여 즉시 복사해 쓸 수 있도록 구성.',
+    ai_comment_trigger:
+      '아티클 하단 토론창에 “본인 사이트의 도메인 점수와 주력 키워드를 남기면 GEO 인용 가능성을 진단해 드립니다” 이벤트 운영.',
+    published_at: '2026-10-06T14:10:00Z',
+  },
+
+  // 4. Instagram
+  {
+    id: 'post-ig-1',
+    channel: 'instagram',
+    viral_type: 'spike',
+    title:
+      '[릴스 240만뷰] 카피라이터가 올리브영 매대에서 무조건 집어 들게 만드는 한 줄 문구 법칙 4가지',
+    hook_copy:
+      '“같은 비타민 세럼인데 왜 왼쪽 제품만 품절될까요? 패키지에 적힌 ‘이 단어’ 하나 차이입니다.”',
+    author_name: '@copy_alchemy',
+    source_url: 'https://instagram.com',
+    views_count: 2410000,
+    likes_count: 118000,
+    comments_count: 4320,
+    shares_count: 89400,
+    engagement_rate: 16.9,
+    growth_velocity: '업로드 12시간 만에 저장수 5만 회 돌파',
+    keywords: ['#카피라이팅', '#릴스떡상', '#브랜딩전략', '#올리브영마케팅', '#마케터그램'],
+    ai_hook_point:
+      '누구나 익숙한 공간(올리브영 매대)에서 벌어지는 품절 현상을 시각적 비교로 보여주며 1.5초 만에 스크롤을 멈추게 함.',
+    ai_visual_structure:
+      '0~2초 현장 매대 클로즈업 훅 → 3~12초 빠른 컷 편집(1.2초 간격)과 화면 중앙 강조형 캡션 → 마지막 2초 핵심 요약 리스트를 빠르게 지나가게 해 일시정지/재시청 유도.',
+    ai_comment_trigger:
+      '“캡션에 업종별 금지 단어 30개와 대체 표현 사전을 정리해 뒀습니다. 나중에 쓰려면 무조건 [저장]부터 누르고 친구 태그하세요!”로 저장률 3.7% 달성.',
+    published_at: '2026-10-15T06:00:00Z',
+  },
+  {
+    id: 'post-ig-2',
+    channel: 'instagram',
+    viral_type: 'steady',
+    title:
+      '[카드뉴스] 1인 브랜드가 광고비 0원으로 진성 팬 1만 명 모으는 인스타그램 프로필 깔때기 설계도',
+    hook_copy:
+      '“릴스가 백만 뷰 터져도 팔로우로 안 이어진다면? 프로필 소개글 3줄이 손님을 쫓아내고 있기 때문입니다.”',
+    author_name: '@solo_brand_lab',
+    source_url: 'https://instagram.com',
+    views_count: 460000,
+    likes_count: 31200,
+    comments_count: 1950,
+    shares_count: 42100,
+    engagement_rate: 15.4,
+    growth_velocity: '저장 대비 공유 비율 1:1.3으로 지속 확산 중',
+    keywords: ['#인스타그램브랜딩', '#1인기업', '#프로필꾸미기', '#콘텐츠마케팅', '#퍼스널브랜딩'],
+    ai_hook_point:
+      '조회수는 높지만 팔로워가 늘지 않는 크리에이터들의 가장 아픈 지점을 첫 장 카피로 정확히 타격함.',
+    ai_visual_structure:
+      '1장(강렬한 타이포 훅) → 2~5장(잘못된 예시 X vs 고전환 예시 O 직관적 도식) → 6~8장(빈칸 채우기 템플릿) → 9장(저장 유도 요약표) 9장 완결형 캐러셀.',
+    ai_comment_trigger:
+      '“댓글에 ‘프로필’ 세 글자만 남겨주시면 DM으로 노션 프로필 진단 시트를 즉시 자동 발송해 드립니다(매니챗 연동)”로 댓글 1,950개 폭발.',
+    published_at: '2026-10-11T09:00:00Z',
+  },
+
+  // 5. Threads
+  {
+    id: 'post-th-1',
+    channel: 'threads',
+    viral_type: 'spike',
+    title:
+      '마케팅 대행사 7년 차가 클라이언트 미팅에서 절대 쓰지 않는 말 5가지 (타래로 이어집니다 🧵)',
+    hook_copy:
+      '“클라이언트한테 ‘요즘 젠지(Gen-Z)들이 좋아해요’라고 말하는 순간, 그 제안서는 바로 쓰레기통으로 갑니다.”',
+    author_name: '@agency_insider_kr',
+    source_url: 'https://threads.net',
+    views_count: 680000,
+    likes_count: 29400,
+    comments_count: 3820,
+    shares_count: 14900,
+    engagement_rate: 15.8,
+    growth_velocity: '업로드 6시간 만에 리포스트 8,000회 및 인용 토론 폭발',
+    keywords: ['#쓰레드마케팅', '#대행사실무', '#제안서작성', '#B2B영업', '#카피라이팅'],
+    ai_hook_point:
+      '업계의 흔한 클리셰(‘요즘 젠지들이 좋아해요’)를 강하게 비판하는 반직관적 첫 문장으로 마케터·대표들의 시선을 강탈함.',
+    ai_visual_structure:
+      '첫 게시물은 단 2문장으로 여백을 살리고, 이어지는 댓글 타래(Thread)에 1번부터 5번까지 짧은 호흡의 대체 화법을 구조화하여 마지막 타래까지 완독 유도.',
+    ai_comment_trigger:
+      '마지막 타래에 “현업에서 들었던 가장 황당한 마케팅 피드백이나 유행어는 무엇이었나요?”라는 열린 질문을 던져 3,800개 이상의 경험담 댓글 릴레이 형성.',
+    published_at: '2026-10-15T11:30:00Z',
+  },
+
+  // 6. X (Twitter)
+  {
+    id: 'post-x-1',
+    channel: 'x',
+    viral_type: 'spike',
+    title:
+      '사이드 프로젝트 런칭 첫날 결제 120건 만든 랜딩페이지 히어로 섹션 A/B 테스트 결과 공유',
+    hook_copy:
+      '“기능 설명을 전부 지우고 고객이 겪는 ‘짜증 나는 순간’ 하나만 적었더니 결제 전환율이 1.4%에서 5.9%로 뛰었습니다. 실제 화면 비교 타래👇”',
+    author_name: '@indie_maker_seo',
+    source_url: 'https://x.com',
+    views_count: 820000,
+    likes_count: 19800,
+    comments_count: 1140,
+    shares_count: 15600,
+    engagement_rate: 13.95,
+    growth_velocity: '북마크 2.4만 회 돌파 및 테크/스타트업 커뮤니티 확산',
+    keywords: ['#인디해커', '#랜딩페이지', '#AB테스트', '#스타트업마케팅', '#전환율최적화'],
+    ai_hook_point:
+      '실제 매출/결제 건수(120건)와 전환율 변화(1.4% → 5.9%)를 첫 트윗에 압축 제시해 북마크 욕구를 즉각 자극함.',
+    ai_visual_structure:
+      '트윗 상단에 Before/After 랜딩페이지 스크린샷 2장을 나란히 첨부하고, 빨간색 화살표 어노테이션으로 변경된 카피 위치를 직관적으로 표시함.',
+    ai_comment_trigger:
+      '“현재 만들고 계신 프로덕트의 한 줄 소개와 타깃 고객을 멘션으로 남겨주시면 히어로 섹션 카피를 무료로 리라이팅해 드립니다”로 실시간 인용 알티(RT) 폭발.',
+    published_at: '2026-10-14T18:00:00Z',
+  },
+
+  // 7. Facebook
+  {
+    id: 'post-fb-1',
+    channel: 'facebook',
+    viral_type: 'steady',
+    title:
+      '3040 직장인 타깃 건기식 브랜드가 메타(Meta) 광고 ROAS 420% 방어한 ‘네이티브 스토리텔링’ 소재 공식',
+    hook_copy:
+      '“화려한 스튜디오 촬영 컷보다 스마트폰 메모장 캡처 한 장이 클릭률 3.2배 더 높게 나왔습니다. 왜 그럴까요?”',
+    author_name: '퍼포먼스 마케팅 랩',
+    source_url: 'https://facebook.com',
+    views_count: 295000,
+    likes_count: 8400,
+    comments_count: 1620,
+    shares_count: 6300,
+    engagement_rate: 11.45,
+    growth_velocity: '마케팅 실무자 그룹 24곳에 공유되며 3주 연속 인기글 유지',
+    keywords: ['#메타광고', '#퍼포먼스마케팅', '#ROAS개선', '#광고소재기획', '#스토리텔링'],
+    ai_hook_point:
+      '고비용 스튜디오 촬영 vs 스마트폰 메모장 캡처라는 극명한 대비를 통해 광고 피로도에 지친 마케터들의 고정관념을 깨뜨림.',
+    ai_visual_structure:
+      '첫 번째 이미지는 실제 아이폰 메모장 UI에 적힌 진솔한 후기 캡처, 두 번째부터는 광고 관리자 CTR/CPC 실제 성과 그래프를 배치해 신뢰도 확보.',
+    ai_comment_trigger:
+      '“메타 광고 효율이 떨어질 때 여러분이 가장 먼저 바꾸는 요소는 무엇인가요? (1. 썸네일 2. 첫 문장 3. 타깃팅) 댓글로 번호와 이유를 공유해 주세요!”로 투표형 댓글 유도.',
+    published_at: '2026-10-08T09:15:00Z',
+  },
+];
+
+// 초기 아이디어 보관함 샘플 데이터
+export const INITIAL_SAVED_IDEAS: MarketingLabIdea[] = [
+  {
+    id: 'idea-seed-1',
+    source_post_id: 'post-ig-1',
+    source_channel: 'instagram',
+    target_channel: 'naver_blog',
+    fusion_topic: '프리미엄 데스크테리어 조명 브랜드 런칭 캠페인',
+    cross_media_strategy:
+      '인스타그램 릴스 240만뷰 사례의 [1.5초 비교 훅 + 금지 단어 대조법]을 네이버 블로그 스마트블록 상위노출용 [비교 분석형 롱폼 리뷰]로 이식합니다. 초반 3줄에서 일반 스탠드와 눈 피로도 차이를 직관적 GIF로 대조해 이탈을 막고 체류시간 4분 이상을 확보합니다.',
+    custom_title:
+      '하루 8시간 모니터 보는 직장인이 데스크 조명 바꿨더니 눈 시림 사라진 이유 (일반 LED vs 시력보호 조명 3종 실측 비교)',
+    custom_thumbnail_concept:
+      '좌측: 어두운 방 모니터 반사광으로 눈 찌푸린 사진 (붉은색 X) / 우측: 비대칭 스크린바로 깔끔하게 정돈된 데스크 셋업 (초록색 O + 조도계 수치 오버레이)',
+    content_outline:
+      '1. [후킹 도입] 퇴근 후 눈이 침침한 이유가 모니터가 아니라 조명 각도 때문이라는 사실 제시\n2. [시각적 비교] 스마트폰 슬로우모션으로 찍은 플리커 현상 GIF 2종 비교\n3. [핵심 근거] 색온도(4000K)와 연색성(Ra95) 실측 표 정리\n4. [댓글/전환 유도] 내 책상 가로 사이즈 댓글 남기면 맞춤 설치 가이드 PDF 증정',
+    memo: '이번 주 금요일 스마트블록 발행 예정. 촬영 시 아이폰 슬로우모션 플리커 비교 컷 필수 확보할 것!',
+    tags: ['#데스크테리어', '#스마트블록이식', '#릴스공식활용'],
+    is_pinned: true,
+    status: 'ready',
+    created_at: '2026-10-15T15:20:00Z',
+  },
+  {
+    id: 'idea-seed-2',
+    source_post_id: 'post-yt-1',
+    source_channel: 'youtube',
+    target_channel: 'threads',
+    fusion_topic: 'AI 마케팅 자동화 SaaS 초기 유저 확보',
+    cross_media_strategy:
+      '유튜브 94만뷰 사례의 [구체적 시간 절감 수치 + 조건 없는 시트 무료 배포] 공식을 쓰레드(Threads)의 [반직관적 첫 문장 + 5단 타래(Thread) + 댓글 자동 DM] 포맷으로 압축 이식합니다.',
+    custom_title:
+      '마케터가 주간 보고서 쓰는 데 3시간 넘게 걸린다면 성실한 게 아니라 도구가 틀린 겁니다 (실제 15분 컷 자동화 타래 🧵)',
+    custom_thumbnail_concept:
+      '텍스트 중심 2문장 첫 게시물 + 두 번째 타래에 Before(8시간) vs After(15분) 노션/슬랙 자동 알림 짧은 5초 화면 녹화 GIF 첨부',
+    content_outline:
+      '1. [본문 첫 트윗] 통념 파괴 후킹 2문장 + 타래 예고\n2. [타래 1~3] 광고 데이터 수집 → AI 요약 → 슬랙 발송 3단계 핵심 프롬프트 공개\n3. [타래 4] 실제 절감된 팀 리소스 수치 증명\n4. [타래 5 CTA] 댓글에 "자동화" 남기면 노코드 템플릿 링크 즉시 공유',
+    memo: '화요일 오전 8시 30분 출근 시간대 업로드 테스트 예정.',
+    tags: ['#쓰레드타래', '#B2B리드젠', '#유튜브공식이식'],
+    is_pinned: false,
+    status: 'draft',
+    created_at: '2026-10-14T19:00:00Z',
+  },
+];
+
+// 빠른 융합 소재 프리셋
+const QUICK_FUSION_TOPICS = [
+  'AI 업무 자동화 노션 템플릿 런칭',
+  '성수동 비건 베이커리 팝업스토어 홍보',
+  '직장인 체형교정 데스크테리어 의자 캠페인',
+  'B2B 마케팅 SaaS 무료 체험 리드 확보',
+  '1인 지식창업가 전자책 & 뉴스레터 구독 퍼널',
+];
+
+// ----------------------------------------------------------------------------
+// AI 크로스오버 재창조 엔진 (선택된 분석 데이터 × 타깃 채널 × 내 소재 융합 생성기)
+// ----------------------------------------------------------------------------
+function generateCrossoverSynthesis(
+  post: MarketingLabPost,
+  targetChannel: SnsChannel,
+  topic: string
+) {
+  const sourceMeta =
+    SNS_CHANNELS.find((c) => c.id === post.channel) || SNS_CHANNELS[0];
+  const targetMeta =
+    SNS_CHANNELS.find((c) => c.id === targetChannel) || SNS_CHANNELS[1];
+  const cleanTopic = topic.trim() || '신규 브랜드 캠페인 & 핵심 상품';
+
+  const channelAdaptationMap: Record<
+    SnsChannel,
+    {
+      strategy: string;
+      titleTemplate: string;
+      visualConcept: string;
+      outlineSteps: string[];
+    }
+  > = {
+    youtube: {
+      strategy: `[${sourceMeta.shortLabel} ➔ 유튜브 롱폼/쇼츠 이식] 원본의 핵심 훅(${post.ai_hook_point.slice(0, 38)}...)을 초반 5초 인트로 내레이션과 화면 분할 썸네일로 변환합니다. "${cleanTopic}"의 Before/After 수치 대비를 전면에 내세워 클릭률(CTR) 9% 이상을 노립니다.`,
+      titleTemplate: `[실전 공개] ${cleanTopic}, 돈 안 쓰고 성과 3.8배 만든 현실 공식 (실제 템플릿 무료 배포)`,
+      visualConcept: `좌측(어두운 톤): 기존 방식의 실패/비효율 상황 + 붉은색 경고 텍스트 / 우측(고채도): "${cleanTopic}" 도입 후 폭발적 지표 상승 화면 + 노란색 4단어 훅 ("딱 1가지 차이")`,
+      outlineSteps: [
+        `1. [00:00~00:15 후킹] "${cleanTopic}"에서 90%가 겪는 흔한 실패 통념 파괴 및 결과 지표 선공개`,
+        `2. [00:15~02:30 문제 진단] 원본 성공 공식의 비교 구조를 차용해 왜 기존 방식이 안 먹히는지 시각적 증명`,
+        `3. [02:30~06:00 핵심 솔루션] ${cleanTopic}에 바로 적용하는 3단계 실전 프레임워크 화면 공유`,
+        `4. [06:00~엔딩 댓글 트리거] 고정 댓글에 "본인의 현재 고민을 남기면 맞춤 체크리스트 PDF 발송" CTA 배치`,
+      ],
+    },
+    naver_blog: {
+      strategy: `[${sourceMeta.shortLabel} ➔ 네이버 블로그 스마트블록 이식] ${sourceMeta.shortLabel}에서 검증된 후킹 포인트(${post.ai_hook_point.slice(0, 36)}...)를 네이버 DIA+ 로직이 선호하는 '초반 3줄 요약 인용구 + 직접 찍은 비교 GIF' 구조로 변환하여 스마트블록 상단 노출과 체류시간 4분 이상을 확보합니다.`,
+      titleTemplate: `${cleanTopic} 직접 써보고 정착한 이유: 실패 없는 선택 기준 5가지 총정리 (실측 비교표有)`,
+      visualConcept: `대표 썸네일: 정방형(1:1) 고화질 실사용 비교 컷 + 깔끔한 고딕체 타이틀 배너 / 본문 상단: 2.5초 만에 차이를 보여주는 Before & After 움짤(GIF) 배치`,
+      outlineSteps: [
+        `1. [도입 3줄 인용구] 독자의 페인포인트를 찌르는 질문형 첫 문장 + 핵심 결론 3줄 요약 박스`,
+        `2. [비교 검증 섹션] "${cleanTopic}" 도입 전후 데이터 및 경쟁 대안과의 1:1 비교 표(Table) 제시`,
+        `3. [디테일 리뷰] 현장감 있는 실사 이미지 6~8장과 소제목(H2) 키워드 반복 배치로 검색 의도 충족`,
+        `4. [공감·비밀댓글 유도] "포스팅에 다 못 담은 ${cleanTopic} 비공개 견적/체크리스트는 공감+비밀댓글 남겨주세요"`,
+      ],
+    },
+    seo_blog: {
+      strategy: `[${sourceMeta.shortLabel} ➔ 워드프레스/구글 SEO & GEO 이식] 원본의 바이럴 트리거를 구글 Featured Snippet 및 AI 검색엔진(Perplexity/ChatGPT)이 인용하기 가장 좋은 '질문형 H2 헤더 + 45단어 핵심 정의 + 구조화 비교 테이블' 아티클로 재창조합니다.`,
+      titleTemplate: `2026 ${cleanTopic} 완벽 가이드: 전환율을 4.2배 높이는 데이터 기반 설계 프레임워크`,
+      visualConcept: `본문 최상단 Key Takeaways 요약 카드 UI + 수치 비교 데이터 차트(SVG/WebP) + 인터랙티브 체크리스트 테이블 배치`,
+      outlineSteps: [
+        `1. [TL;DR 요약 박스] AI 답변엔진(GEO) 인용을 겨냥한 45단어 이내의 명확한 정의와 핵심 수치 제시`,
+        `2. [H2 질문형 구조화] "왜 기존 ${cleanTopic} 방식은 실패하는가?" 데이터 근거와 업계 벤치마크 비교`,
+        `3. [Step-by-Step 가이드] 실무자가 즉시 복사해 적용할 수 있는 5단계 실행 템플릿 및 비교 매트릭스 표`,
+        `4. [리드 마그넷 전환] 본문 중단 및 하단에 "${cleanTopic} 실전 노션 키트" 뉴스레터 구독 폼 배치`,
+      ],
+    },
+    instagram: {
+      strategy: `[${sourceMeta.shortLabel} ➔ 인스타그램 릴스/캐러셀 이식] 원본 콘텐츠의 핵심 인사이트를 1.5초 시각적 스크롤 스톱 훅과 8장 완결형 카드뉴스(또는 18초 릴스)로 압축합니다. 캡션 하단 키워드 댓글 트리거(매니챗 DM 연동)로 저장과 댓글을 동시에 폭발시킵니다.`,
+      titleTemplate: `[저장 필수] ${cleanTopic}, 상위 1%만 몰래 쓰는 한 줄 디테일 차이 4가지`,
+      visualConcept: `1장 표지: 극명한 대비를 이루는 2분할 비주얼(왼쪽 빨간색 X vs 오른쪽 초록색 O) + 화면 중앙 강렬한 2줄 타이포그래피`,
+      outlineSteps: [
+        `1. [1장 / 0~2초 훅] "${cleanTopic}, 아직도 이렇게 하시나요?" 직관적 시각 비교로 스크롤 정지 유도`,
+        `2. [2~5장 핵심 대비] 흔히 저지르는 실수 3가지 vs 반응이 터지는 실전 공식 1:1 대조`,
+        `3. [6~7장 실전 치트키] 오늘 바로 따라 할 수 있는 빈칸 채우기 공식 제시 (일시정지 및 캡처 유도)`,
+        `4. [8장 & 캡션 CTA] "나중에 보려면 [저장] 누르고, 댓글에 '공식' 남기시면 DM으로 전체 요약본 보내드려요!"`,
+      ],
+    },
+    threads: {
+      strategy: `[${sourceMeta.shortLabel} ➔ 쓰레드(Threads) 5단 타래 이식] 원본의 성공 요인을 쓰레드의 텍스트 친화적 알고리즘에 맞춰 '통념을 부수는 2문장 첫 게시물 + 5개 댓글 타래 연재 + 열린 토론 질문' 구조로 전환해 리포스트와 인용 대화를 폭발시킵니다.`,
+      titleTemplate: `${cleanTopic} 할 때 가장 먼저 버려야 할 고정관념 5가지 (실무에서 겪은 진짜 이유 타래로 풉니다 🧵)`,
+      visualConcept: `첫 게시물은 이미지 없이 여백 있는 2문장 텍스트로 시선 집중 + 2번째 타래에 핵심 비교 스크린샷 1장 첨부`,
+      outlineSteps: [
+        `1. [첫 게시물 (본문)] 업계의 흔한 통념을 정면으로 반박하는 강렬한 2문장 훅 + "타래로 이어집니다 👇"`,
+        `2. [타래 1~3] ${cleanTopic} 현장에서 직접 부딪히며 찾은 Before/After 핵심 인사이트 3가지 (각 3줄 이내)`,
+        `3. [타래 4] 실제 적용 후 달라진 수치 변화 및 핵심 한 줄 요약`,
+        `4. [타래 5 토론 유도] "여러분이 ${cleanTopic} 진행하면서 가장 막혔던 순간은 언제였나요?" 열린 질문으로 댓글 릴레이 유도`,
+      ],
+    },
+    x: {
+      strategy: `[${sourceMeta.shortLabel} ➔ X(Twitter) 빌드인퍼블릭 & 북마크 타래 이식] 원본의 데이터 검증 포인트를 X 유저들이 가장 열광하는 '구체적 성과 수치 + Before/After 화면 캡처 어노테이션 + 북마크 유도형 압축 타래'로 변환합니다.`,
+      titleTemplate: `${cleanTopic}에 딱 '이 구조' 하나 적용했더니 전환 지표가 3.4배 뛰었습니다. 실제 적용 과정 타래 👇`,
+      visualConcept: `트윗 첨부 이미지: 좌우 2분할 스크린샷 비교 + 핵심 변경 포인트를 가리키는 빨간색 화살표 및 수치 배지 어노테이션`,
+      outlineSteps: [
+        `1. [첫 트윗] 달성한 구체적 수치 결과 + 변경한 핵심 요소 1가지 요약 + 비교 이미지 2장 첨부`,
+        `2. [트윗 2~4] 기존 방식의 문제점 → 가설 설정 → 수정 후 실제 지표 변화 데이터 공개`,
+        `3. [트윗 5] 누구나 10분 만에 적용할 수 있는 체크리스트 4항목 정리 (북마크 유도)`,
+        `4. [트윗 6 멘션 트리거] "현재 준비 중인 ${cleanTopic} 링크나 한 줄 소개를 멘션으로 남기시면 피드백 드립니다"`,
+      ],
+    },
+    facebook: {
+      strategy: `[${sourceMeta.shortLabel} ➔ 페이스북 네이티브 스토리텔링 & 메타 광고 소재 이식] 원본의 핵심 훅을 광고처럼 보이지 않는 '스마트폰 메모장 캡처 / 실제 후기 에피소드' 형태의 네이티브 스토리텔링 포맷으로 재구성하여 그룹 공유와 ROAS를 극대화합니다.`,
+      titleTemplate: `"처음엔 다들 안 될 거라고 했습니다." ${cleanTopic} 담당자가 광고비 절반 줄이고 오히려 반응 터뜨린 의외의 방법`,
+      visualConcept: `첫 번째 이미지: 아이폰 기본 메모장 UI에 진솔하게 적힌 핵심 요약 캡처 / 두 번째 이미지: 실제 성과 전후 비교 그래프`,
+      outlineSteps: [
+        `1. [첫 문단 공감 스토리] 누구나 겪어봤을 법한 생생한 실패 에피소드와 반전 결과로 ‘더보기’ 클릭 유도`,
+        `2. [핵심 인사이트] ${cleanTopic}에서 화려한 포장 대신 고객의 진짜 페인포인트 1가지를 파고든 과정 서술`,
+        `3. [실전 적용 팁] 당장 내일부터 써먹을 수 있는 3가지 체크포인트 정리`,
+        `4. [투표형 댓글 유도] "${cleanTopic}에서 여러분이 가장 중요하게 보는 기준은 몇 번인가요? (1. 가격 2. 시간절감 3. 사후관리)"`,
+      ],
+    },
+  };
+
+  return channelAdaptationMap[targetChannel];
+}
+
+// 숫자 포맷터 (예: 942000 -> 94.2만)
+function formatKoreanMetric(num: number): string {
+  if (num >= 10000) {
+    return `${(num / 10000).toFixed(num >= 100000 ? 1 : 2).replace(/\.0$/, '')}만`;
+  }
+  return num.toLocaleString('ko-KR');
+}
+
+export default function MarketingLab() {
+  // --------------------------------------------------------------------------
+  // 1. 좌측 [공부 (Deconstruct)] 상태 관리
+  // --------------------------------------------------------------------------
+  const [selectedChannel, setSelectedChannel] = useState<SnsChannel>('youtube');
+  const [selectedViralFilter, setSelectedViralFilter] = useState<ViralPattern>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [posts, setPosts] = useState<MarketingLabPost[]>(INITIAL_MARKETING_POSTS);
+  const [activePostId, setActivePostId] = useState<string>(INITIAL_MARKETING_POSTS[0].id);
+  const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
+
+  // 새 레퍼런스 추가 모달 상태
+  const [isNewPostModalOpen, setIsNewPostModalOpen] = useState<boolean>(false);
+  const [newPostTitle, setNewPostTitle] = useState<string>('');
+  const [newPostHook, setNewPostHook] = useState<string>('');
+  const [newPostAuthor, setNewPostAuthor] = useState<string>('');
+  const [newPostViralType, setNewPostViralType] = useState<PostViralType>('spike');
+  const [newPostKeywords, setNewPostKeywords] = useState<string>('#트렌드분석, #바이럴공식, #성공사례');
+
+  // --------------------------------------------------------------------------
+  // 2. 우측 [연구 (Synthesize)] 상태 관리
+  // --------------------------------------------------------------------------
+  const [targetChannel, setTargetChannel] = useState<SnsChannel>('naver_blog');
+  const [fusionTopic, setFusionTopic] = useState<string>(
+    'AI 업무 자동화 노션 템플릿 런칭'
+  );
+  const [crossMediaStrategy, setCrossMediaStrategy] = useState<string>('');
+  const [customTitle, setCustomTitle] = useState<string>('');
+  const [customThumbnailConcept, setCustomThumbnailConcept] = useState<string>('');
+  const [contentOutline, setContentOutline] = useState<string>('');
+  const [memoText, setMemoText] = useState<string>('');
+  const [customTagsInput, setCustomTagsInput] = useState<string>(
+    '#크로스오버연구, #성공공식이식, #신규콘텐츠기획'
+  );
+  const [ideaStatus, setIdeaStatus] = useState<'draft' | 'ready' | 'published'>('ready');
+
+  // 보관함 (Supabase marketing_lab_ideas 연동) 상태
+  const [savedIdeas, setSavedIdeas] = useState<MarketingLabIdea[]>(INITIAL_SAVED_IDEAS);
+  const [vaultFilterChannel, setVaultFilterChannel] = useState<SnsChannel | 'all'>('all');
+  const [isSavingIdea, setIsSavingIdea] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [workspacePulse, setWorkspacePulse] = useState<boolean>(false);
+
+  // 토스트 알림 헬퍼
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((prev) => (prev === msg ? null : prev));
+    }, 3200);
+  }, []);
+
+  // 현재 선택된 분석 게시글 객체
+  const activePost = useMemo(() => {
+    return posts.find((p) => p.id === activePostId) || posts[0];
+  }, [posts, activePostId]);
+
+  // 현재 활성 채널 메타데이터
+  const currentChannelMeta = useMemo(() => {
+    return SNS_CHANNELS.find((c) => c.id === selectedChannel) || SNS_CHANNELS[0];
+  }, [selectedChannel]);
+
+  const targetChannelMeta = useMemo(() => {
+    return SNS_CHANNELS.find((c) => c.id === targetChannel) || SNS_CHANNELS[1];
+  }, [targetChannel]);
+
+  // --------------------------------------------------------------------------
+  // 3. Supabase 초기 데이터 로드 (환경변수 설정 시 실제 DB 조회)
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchInitialData() {
+      if (!IS_SUPABASE_CONFIGURED) return;
+      setIsLoadingPosts(true);
+      const [dbPosts, dbIdeas] = await Promise.all([
+        supabaseRequest<MarketingLabPost[]>(
+          'marketing_lab_posts?select=*&order=engagement_rate.desc'
+        ),
+        supabaseRequest<MarketingLabIdea[]>(
+          'marketing_lab_ideas?select=*&order=is_pinned.desc,created_at.desc'
+        ),
+      ]);
+      if (!isMounted) return;
+      if (dbPosts && dbPosts.length > 0) {
+        setPosts(dbPosts);
+        setActivePostId(dbPosts[0].id);
+      }
+      if (dbIdeas && dbIdeas.length > 0) {
+        setSavedIdeas(dbIdeas);
+      }
+      setIsLoadingPosts(false);
+    }
+    fetchInitialData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // --------------------------------------------------------------------------
+  // 4. 선택된 게시글/타깃채널/소재 변경 시 AI 크로스오버 제안 자동 합성
+  // --------------------------------------------------------------------------
+  const runAiSynthesis = useCallback(
+    (post: MarketingLabPost, target: SnsChannel, topic: string) => {
+      const result = generateCrossoverSynthesis(post, target, topic);
+      setCrossMediaStrategy(result.strategy);
+      setCustomTitle(result.titleTemplate);
+      setCustomThumbnailConcept(result.visualConcept);
+      setContentOutline(result.outlineSteps.join('\n'));
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (activePost) {
+      runAiSynthesis(activePost, targetChannel, fusionTopic);
+    }
+  }, [activePost, targetChannel, fusionTopic, runAiSynthesis]);
+
+  // --------------------------------------------------------------------------
+  // 5. 좌측 게시글 필터링
+  // --------------------------------------------------------------------------
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const matchChannel = post.channel === selectedChannel;
+      const matchViral =
+        selectedViralFilter === 'all' || post.viral_type === selectedViralFilter;
+      const q = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        post.title.toLowerCase().includes(q) ||
+        post.hook_copy.toLowerCase().includes(q) ||
+        post.keywords.some((k) => k.toLowerCase().includes(q)) ||
+        post.author_name.toLowerCase().includes(q);
+      return matchChannel && matchViral && matchSearch;
+    });
+  }, [posts, selectedChannel, selectedViralFilter, searchQuery]);
+
+  // 채널 탭 변경 시 해당 채널의 첫 번째 카드를 자동 선택하고,
+  // 크로스오버 효과를 극대화하기 위해 기본 타깃 채널을 다른 채널로 스마트 추천
+  const handleSelectChannel = (channel: SnsChannel) => {
+    setSelectedChannel(channel);
+    const channelPosts = posts.filter((p) => p.channel === channel);
+    if (channelPosts.length > 0) {
+      setActivePostId(channelPosts[0].id);
+    }
+    if (targetChannel === channel) {
+      const recommendedTarget: Record<SnsChannel, SnsChannel> = {
+        youtube: 'naver_blog',
+        naver_blog: 'instagram',
+        seo_blog: 'threads',
+        instagram: 'naver_blog',
+        threads: 'youtube',
+        x: 'seo_blog',
+        facebook: 'instagram',
+      };
+      setTargetChannel(recommendedTarget[channel]);
+    }
+  };
+
+  // "이 분석으로 연구하기" 버튼 핸들러 (좌측 -> 우측 워크스페이스 즉시 연동)
+  const handleStudyWithPost = (post: MarketingLabPost) => {
+    setActivePostId(post.id);
+    // 원본 채널과 동일한 타깃 채널이면 가장 시너지가 높은 타깃 채널로 자동 스위칭 제안
+    let nextTarget = targetChannel;
+    if (post.channel === targetChannel) {
+      nextTarget = post.channel === 'instagram' ? 'naver_blog' : 'instagram';
+      setTargetChannel(nextTarget);
+    }
+    runAiSynthesis(post, nextTarget, fusionTopic);
+    setWorkspacePulse(true);
+    setTimeout(() => setWorkspacePulse(false), 900);
+
+    const srcName =
+      SNS_CHANNELS.find((c) => c.id === post.channel)?.shortLabel || post.channel;
+    const tgtName =
+      SNS_CHANNELS.find((c) => c.id === nextTarget)?.shortLabel || nextTarget;
+    showToast(
+      `🔬 [${srcName}] 성공 공식이 우측 [${tgtName}] 크로스오버 연구소로 연동되었습니다!`
+    );
+  };
+
+  // 클립보드 복사 핸들러 (Canvas 및 모든 브라우저 호환)
+  const handleCopyText = async (key: string, text: string, label: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedKey(key);
+      showToast(`📋 ${label} 내용이 클립보드에 복사되었습니다.`);
+      setTimeout(() => {
+        setCopiedKey((prev) => (prev === key ? null : prev));
+      }, 2000);
+    } catch {
+      showToast('클립보드 복사 중 오류가 발생했습니다.');
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // 6. 우측 연구 결과 Supabase DB 저장 핸들러 (marketing_lab_ideas)
+  // --------------------------------------------------------------------------
+  const handleSaveIdeaToDb = async () => {
+    if (!activePost) return;
+    setIsSavingIdea(true);
+
+    const parsedTags = customTagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => (t.startsWith('#') ? t : `#${t}`));
+
+    const newIdeaPayload: Omit<MarketingLabIdea, 'id' | 'created_at'> = {
+      source_post_id: activePost.id,
+      source_channel: activePost.channel,
+      target_channel: targetChannel,
+      fusion_topic: fusionTopic.trim() || '나만의 크로스오버 캠페인',
+      cross_media_strategy: crossMediaStrategy,
+      custom_title: customTitle,
+      custom_thumbnail_concept: customThumbnailConcept,
+      content_outline: contentOutline,
+      memo:
+        memoText.trim() ||
+        `[${currentChannelMeta.shortLabel} ➔ ${targetChannelMeta.shortLabel}] 원본 "${activePost.title.slice(0, 28)}..." 후킹 공식 이식 완료`,
+      tags: parsedTags.length > 0 ? parsedTags : ['#마케팅연구소', '#크로스오버'],
+      is_pinned: false,
+      status: ideaStatus,
+    };
+
+    // Supabase 연동 시도 후 로컬 상태 동기화
+    const dbInserted = await supabaseRequest<MarketingLabIdea[]>(
+      'marketing_lab_ideas',
+      {
+        method: 'POST',
+        body: JSON.stringify(newIdeaPayload),
+      }
+    );
+
+    const savedRecord: MarketingLabIdea =
+      dbInserted && dbInserted[0]
+        ? dbInserted[0]
+        : {
+            ...newIdeaPayload,
+            id: `idea-${Date.now()}`,
+            created_at: new Date().toISOString(),
+          };
+
+    setSavedIdeas((prev) => [savedRecord, ...prev]);
+    setMemoText('');
+    setIsSavingIdea(false);
+    showToast(
+      IS_SUPABASE_CONFIGURED
+        ? '✅ Supabase DB (marketing_lab_ideas)에 연구 아이디어가 저장되었습니다!'
+        : '✅ 아이디어 보관함에 저장되었습니다! (Supabase 연결 시 DB에 자동 영구 저장됩니다)'
+    );
+  };
+
+  // 보관함 아이디어 고정(Pin) 토글
+  const handleTogglePinIdea = async (idea: MarketingLabIdea) => {
+    const nextPinned = !idea.is_pinned;
+    setSavedIdeas((prev) =>
+      prev
+        .map((item) =>
+          item.id === idea.id ? { ...item, is_pinned: nextPinned } : item
+        )
+        .sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned))
+    );
+    if (IS_SUPABASE_CONFIGURED) {
+      await supabaseRequest(`marketing_lab_ideas?id=eq.${idea.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_pinned: nextPinned }),
+      });
+    }
+    showToast(nextPinned ? '📌 상단에 고정되었습니다.' : '고정이 해제되었습니다.');
+  };
+
+  // 보관함 아이디어 삭제
+  const handleDeleteIdea = async (id: string) => {
+    setSavedIdeas((prev) => prev.filter((item) => item.id !== id));
+    if (IS_SUPABASE_CONFIGURED) {
+      await supabaseRequest(`marketing_lab_ideas?id=eq.${id}`, {
+        method: 'DELETE',
+      });
+    }
+    showToast('🗑️ 보관함에서 아이디어가 삭제되었습니다.');
+  };
+
+  // 보관함 아이디어를 우측 편집 워크스페이스로 다시 불러오기
+  const handleLoadIdeaToWorkspace = (idea: MarketingLabIdea) => {
+    setTargetChannel(idea.target_channel);
+    setFusionTopic(idea.fusion_topic);
+    setCrossMediaStrategy(idea.cross_media_strategy);
+    setCustomTitle(idea.custom_title);
+    setCustomThumbnailConcept(idea.custom_thumbnail_concept);
+    setContentOutline(idea.content_outline);
+    setMemoText(idea.memo);
+    setCustomTagsInput(idea.tags.join(', '));
+    setIdeaStatus(idea.status);
+    showToast('📂 보관된 아이디어를 워크스페이스로 불러왔습니다.');
+  };
+
+  // 좌측 새 레퍼런스 등록 핸들러
+  const handleAddNewReferencePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPostTitle.trim() || !newPostHook.trim()) {
+      showToast('포스팅 제목과 후킹 카피를 입력해 주세요.');
+      return;
+    }
+
+    const tags = newPostKeywords
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => (t.startsWith('#') ? t : `#${t}`));
+
+    const newPostRecord: MarketingLabPost = {
+      id: `post-custom-${Date.now()}`,
+      channel: selectedChannel,
+      viral_type: newPostViralType,
+      title: newPostTitle.trim(),
+      hook_copy: newPostHook.trim(),
+      author_name: newPostAuthor.trim() || `@${selectedChannel}_creator`,
+      source_url: 'https://trendcraft.ai',
+      views_count: 185000,
+      likes_count: 9400,
+      comments_count: 720,
+      shares_count: 4800,
+      engagement_rate: 13.2,
+      growth_velocity: '신규 등록 레퍼런스 (+620% 급상승)',
+      keywords: tags.length > 0 ? tags : ['#신규레퍼런스', '#바이럴공식'],
+      ai_hook_point: `초반 첫 문장("${newPostHook.trim().slice(0, 30)}...")에서 타깃 독자의 구체적 결핍을 즉시 건드려 스크롤 이탈을 방지함.`,
+      ai_visual_structure: `${currentChannelMeta.shortLabel} 알고리즘에 최적화된 전후 비교 레이아웃과 핵심 키워드 강조 구조.`,
+      ai_comment_trigger:
+        '본문 하단에 실무 템플릿/체크리스트 제공 조건부 댓글 참여 장치를 배치해 초기 반응 지수를 견인함.',
+      published_at: new Date().toISOString(),
+    };
+
+    if (IS_SUPABASE_CONFIGURED) {
+      const { id: _unusedId, ...dbPayload } = newPostRecord;
+      await supabaseRequest('marketing_lab_posts', {
+        method: 'POST',
+        body: JSON.stringify(dbPayload),
+      });
+    }
+
+    setPosts((prev) => [newPostRecord, ...prev]);
+    setActivePostId(newPostRecord.id);
+    setIsNewPostModalOpen(false);
+    setNewPostTitle('');
+    setNewPostHook('');
+    setNewPostAuthor('');
+    showToast(`✨ [${currentChannelMeta.shortLabel}] 신규 성공 사례가 분석 리스트에 추가되었습니다!`);
+  };
+
+  // 보관함 필터링된 아이디어 목록
+  const filteredSavedIdeas = useMemo(() => {
+    if (vaultFilterChannel === 'all') return savedIdeas;
+    return savedIdeas.filter(
+      (idea) =>
+        idea.target_channel === vaultFilterChannel ||
+        idea.source_channel === vaultFilterChannel
+    );
+  }, [savedIdeas, vaultFilterChannel]);
+
+  // 전체 기획안 통합 복사 포맷
+  const fullBlueprintMarkdown = useMemo(() => {
+    if (!activePost) return '';
+    return [
+      `# [TrendCraft 마케팅 연구소] 크로스오버 기획안`,
+      `- **원본 벤치마킹**: [${currentChannelMeta.shortLabel}] ${activePost.title}`,
+      `- **이식 방향**: ${currentChannelMeta.shortLabel} ➔ ${targetChannelMeta.shortLabel}`,
+      `- **융합 소재**: ${fusionTopic}`,
+      ``,
+      `## 1. 크로스 미디어 이식 공식`,
+      crossMediaStrategy,
+      ``,
+      `## 2. 신규 콘텐츠 / 상품 기획안`,
+      `- **추천 제목/후킹 카피**: ${customTitle}`,
+      `- **썸네일/비주얼 연출**: ${customThumbnailConcept}`,
+      `- **전개 구조 및 댓글 유도**:`,
+      contentOutline,
+      ``,
+      `## 3. 연구원 메모`,
+      memoText || '(메모 없음)',
+    ].join('\n');
+  }, [
+    activePost,
+    currentChannelMeta,
+    targetChannelMeta,
+    fusionTopic,
+    crossMediaStrategy,
+    customTitle,
+    customThumbnailConcept,
+    contentOutline,
+    memoText,
+  ]);
+
+  return (
+    <div className="space-y-6 text-slate-100">
+      {/* 상단 토스트 알림 배너 */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-indigo-500/40 bg-slate-900/95 px-4 py-3 text-sm font-medium text-indigo-200 shadow-2xl backdrop-blur-md">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* =====================================================================
+          섹션 1: 마케팅 연구소 헤더 & 7대 SNS 서브 채널 탭 네비게이션
+         ===================================================================== */}
+      <div className="rounded-2xl border border-slate-800/90 bg-slate-900/70 p-5 shadow-xl backdrop-blur-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-300">
+                <FlaskConical className="h-3.5 w-3.5" />
+                MARKETING LAB · DECONSTRUCT &amp; SYNTHESIZE
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+                <Database className="h-3 w-3" />
+                {IS_SUPABASE_CONFIGURED
+                  ? 'Supabase Live DB 연결됨'
+                  : 'Supabase Schema Ready (인메모리 연동 모드)'}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+              7대 SNS 성공 공식 분해 &amp; 크로스오버 재창조 워크스페이스
+            </h2>
+            <p className="text-sm text-slate-400">
+              좌측에서 채널별 떡상·스테디·롱테일 공식을 3줄로 해부(공부)하고, 우측에서 내 브랜드 소재와 타 채널 포맷으로 융합(연구)하세요.
+            </p>
+          </div>
+
+          {/* 요약 카운터 배지 */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3.5 py-2 text-center">
+              <div className="text-xs text-slate-400">분석된 레퍼런스</div>
+              <div className="text-base font-bold text-white">{posts.length}건</div>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3.5 py-2 text-center">
+              <div className="text-xs text-slate-400">내 아이디어 보관함</div>
+              <div className="text-base font-bold text-indigo-400">
+                {savedIdeas.length}건
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsNewPostModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/20 px-3.5 py-2.5 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-600/30"
+            >
+              <Plus className="h-4 w-4" />
+              새 레퍼런스 등록
+            </button>
+          </div>
+        </div>
+
+        {/* 7대 SNS 서브 채널 탭 바 */}
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {SNS_CHANNELS.map((channel) => {
+            const isSelected = selectedChannel === channel.id;
+            const channelCount = posts.filter((p) => p.channel === channel.id).length;
+            return (
+              <button
+                key={channel.id}
+                type="button"
+                onClick={() => handleSelectChannel(channel.id)}
+                className={`group relative flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all ${
+                  isSelected
+                    ? `${channel.activeBorder} shadow-lg ring-1 ring-white/10`
+                    : 'border-slate-800/80 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:bg-slate-900 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex w-full items-center justify-between gap-1">
+                  <span className="text-xs font-bold tracking-tight sm:text-sm">
+                    {channel.shortLabel}
+                  </span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                      isSelected
+                        ? 'bg-white/15 text-white'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {channelCount}
+                  </span>
+                </div>
+                <span className="mt-1 text-[11px] opacity-75">
+                  {channel.englishName}
+                </span>
+                {isSelected && (
+                  <span
+                    className={`mt-2 h-1 w-full rounded-full bg-gradient-to-r ${channel.accentGradient}`}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 선택된 채널의 핵심 알고리즘 공략 요약 바 */}
+        <div className="mt-3 flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/60 px-4 py-2.5 text-xs text-slate-300 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-md border px-2 py-0.5 font-semibold ${currentChannelMeta.badgeColor}`}
+            >
+              {currentChannelMeta.label} 핵심 알고리즘
+            </span>
+            <span className="text-slate-300">{currentChannelMeta.algorithmFocus}</span>
+          </div>
+          <div className="text-slate-400">
+            권장 포맷: <strong className="text-slate-200">{currentChannelMeta.keyFormat}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* =====================================================================
+          섹션 2: 메인 2-단 레이아웃 (좌측: 공부/Deconstruct | 우측: 연구/Synthesize)
+         ===================================================================== */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* -------------------------------------------------------------------
+            [좌측 6칸] SNS 성공 공식 분해 (공부 / Deconstruct)
+           ------------------------------------------------------------------- */}
+        <div className=" flex flex-col gap-4 xl:col-span-6">
+          <div className="rounded-2xl border border-slate-800/90 bg-slate-900/70 p-5 shadow-lg">
+            {/* 패널 헤더 */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                  <Flame className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white">
+                      좌측: SNS 성공 공식 분해 (공부 / Deconstruct)
+                    </h3>
+                    <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300 border border-amber-500/20">
+                      STEP 1
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    왜 터졌을까? 조회수 폭발 지표와 AI 3줄 성공 요인(후킹·비주얼·댓글 장치)을 해부합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 바이럴 패턴 3대 필터 (Spike / Steady / Long-tail) + 검색창 */}
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {VIRAL_PATTERNS.map((pattern) => {
+                  const isActive = selectedViralFilter === pattern.id;
+                  return (
+                    <button
+                      key={pattern.id}
+                      type="button"
+                      onClick={() => setSelectedViralFilter(pattern.id)}
+                      className={`flex flex-col items-start rounded-xl border p-2.5 text-left transition ${
+                        isActive
+                          ? 'border-indigo-500 bg-indigo-500/15 text-white shadow-sm'
+                          : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{pattern.label}</span>
+                      <span className="mt-0.5 text-[10px] text-slate-400">
+                        {pattern.subLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 키워드/카피 검색 입력 */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`${currentChannelMeta.shortLabel} 내 제목, 후킹 카피, 해시태그 검색...`}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 py-2.5 pl-10 pr-4 text-xs text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                  >
+                    초기화
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 게시글 분석 카드 리스트 */}
+            <div className="mt-4 space-y-4">
+              {isLoadingPosts ? (
+                <div className="flex items-center justify-center py-12 text-sm text-slate-400">
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin text-indigo-400" />
+                  분석 데이터를 불러오는 중...
+                </div>
+              ) : filteredPosts.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/40 p-8 text-center">
+                  <p className="text-sm font-medium text-slate-300">
+                    선택한 필터 조건에 해당하는 분석 게시글이 없습니다.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    바이럴 필터를 ‘전체 패턴’으로 전환하거나 상단의 [새 레퍼런스 등록] 버튼을 눌러 추가해 보세요.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedViralFilter('all');
+                      setSearchQuery('');
+                    }}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20"
+                  >
+                    전체 패턴 보기
+                  </button>
+                </div>
+              ) : (
+                filteredPosts.map((post) => {
+                  const isSelected = post.id === activePost?.id;
+                  const viralMeta =
+                    VIRAL_PATTERNS.find((v) => v.id === post.viral_type) ||
+                    VIRAL_PATTERNS[1];
+
+                  return (
+                    <div
+                      key={post.id}
+                      className={`group rounded-2xl border p-5 transition-all ${
+                        isSelected
+                          ? 'border-indigo-500 bg-slate-900/95 shadow-xl ring-1 ring-indigo-500/40'
+                          : 'border-slate-800/90 bg-slate-950/60 hover:border-slate-700 hover:bg-slate-900/60'
+                      }`}
+                    >
+                      {/* 카드 상단 메타 배지 & 폭발 지표 */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${viralMeta.badgeStyle}`}
+                          >
+                            {viralMeta.label}
+                          </span>
+                          <span className="text-xs font-medium text-slate-400">
+                            {post.author_name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+                            <TrendingUp className="h-3 w-3" />
+                            반응지수 {post.engagement_rate}% · {post.growth_velocity}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 포스팅 제목 */}
+                      <h4 className="mt-3 text-base font-bold leading-snug text-white">
+                        {post.title}
+                      </h4>
+
+                      {/* 후킹 카피 인용 박스 */}
+                      <div className="mt-2.5 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-amber-300">
+                          <span>⚡ 초반 3초 / 첫 문장 후킹 카피</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopyText(
+                                `hook-${post.id}`,
+                                post.hook_copy,
+                                '후킹 카피'
+                              )
+                            }
+                            className="inline-flex items-center gap-1 text-slate-400 hover:text-amber-200"
+                          >
+                            {copiedKey === `hook-${post.id}` ? (
+                              <Check className="h-3 w-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                            복사
+                          </button>
+                        </div>
+                        <p className="mt-1 text-xs font-medium leading-relaxed text-amber-100/90">
+                          {post.hook_copy}
+                        </p>
+                      </div>
+
+                      {/* 조회수 / 반응 폭발 지표 4단 그리드 */}
+                      <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/80 p-2.5 text-center">
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
+                            <Eye className="h-3 w-3 text-sky-400" />
+                            조회/도달
+                          </div>
+                          <div className="mt-0.5 text-xs font-bold text-white">
+                            {formatKoreanMetric(post.views_count)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
+                            <Heart className="h-3 w-3 text-rose-400" />
+                            좋아요/공감
+                          </div>
+                          <div className="mt-0.5 text-xs font-bold text-white">
+                            {formatKoreanMetric(post.likes_count)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
+                            <MessageSquare className="h-3 w-3 text-amber-400" />
+                            댓글/토론
+                          </div>
+                          <div className="mt-0.5 text-xs font-bold text-white">
+                            {formatKoreanMetric(post.comments_count)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
+                            <Share2 className="h-3 w-3 text-emerald-400" />
+                            공유/저장
+                          </div>
+                          <div className="mt-0.5 text-xs font-bold text-white">
+                            {formatKoreanMetric(post.shares_count)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 사용된 해시태그 / 키워드 */}
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        {post.keywords.map((kw) => (
+                          <span
+                            key={kw}
+                            className="rounded-md border border-slate-800 bg-slate-900 px-2 py-0.5 text-[11px] font-medium text-slate-300"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* AI 성공 요인 분해 (왜 터졌을까? 3줄 분석) */}
+                      <div className="mt-4 rounded-xl border border-indigo-500/25 bg-indigo-950/20 p-3.5 space-y-2.5">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
+                          <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                          AI 성공 요인 분해 (왜 터졌을까? 3줄 핵심 해부)
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/30">
+                              <Lightbulb className="h-3 w-3" />
+                              후킹 포인트
+                            </span>
+                            <p className="leading-relaxed text-slate-200">
+                              {post.ai_hook_point}
+                            </p>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-300 border border-sky-500/30">
+                              <LayoutTemplate className="h-3 w-3" />
+                              비주얼 구조
+                            </span>
+                            <p className="leading-relaxed text-slate-200">
+                              {post.ai_visual_structure}
+                            </p>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                              <MessageCircleQuestion className="h-3 w-3" />
+                              댓글 유도 장치
+                            </span>
+                            <p className="leading-relaxed text-slate-200">
+                              {post.ai_comment_trigger}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 카드 하단 액션 버튼: "이 분석으로 연구하기" */}
+                      <div className="mt-4 flex items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                        <span className="text-[11px] text-slate-400">
+                          {isSelected
+                            ? '✅ 현재 우측 연구 워크스페이스에 연동됨'
+                            : '우측 워크스페이스로 데이터를 보내 내 콘텐츠로 재창조합니다.'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStudyWithPost(post)}
+                          className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500'
+                              : 'border border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-600 hover:text-white'
+                          }`}
+                        >
+                          <span>이 분석으로 연구하기</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* -------------------------------------------------------------------
+            [우측 6칸] 나만의 크로스오버 재창조 워크스페이스 (연구 / Synthesize)
+           ------------------------------------------------------------------- */}
+        <div className="flex flex-col gap-4 xl:col-span-6">
+          <div
+            className={`rounded-2xl border bg-slate-900/70 p-5 shadow-lg transition-all duration-300 ${
+              workspacePulse
+                ? 'border-indigo-400 ring-2 ring-indigo-500/50'
+                : 'border-slate-800/90'
+            }`}
+          >
+            {/* 패널 헤더 */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                  <Wand2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white">
+                      우측: 나만의 크로스오버 재창조 워크스페이스 (연구 / Synthesize)
+                    </h3>
+                    <span className="rounded-md bg-indigo-500/15 px-2 py-0.5 text-[11px] font-semibold text-indigo-300 border border-indigo-500/30">
+                      STEP 2
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    선택된 SNS 성공 공식을 다른 미디어 채널과 내 브랜드 소재에 이식하여 새로운 기획안을 완성합니다.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleCopyText(
+                    'full-blueprint',
+                    fullBlueprintMarkdown,
+                    '전체 연구 기획안(Markdown)'
+                  )
+                }
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:border-indigo-500/50 hover:text-white"
+              >
+                {copiedKey === 'full-blueprint' ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5 text-indigo-400" />
+                )}
+                전체 기획안 복사
+              </button>
+            </div>
+
+            {/* 현재 연동된 원본 레퍼런스 요약 배너 */}
+            {activePost && (
+              <div className="mt-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-slate-900/90 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md bg-indigo-500/20 px-2 py-0.5 font-bold text-indigo-300 border border-indigo-500/30">
+                      연동된 원본 DNA
+                    </span>
+                    <span
+                      className={`rounded-md border px-2 py-0.5 font-semibold ${currentChannelMeta.badgeColor}`}
+                    >
+                      {currentChannelMeta.shortLabel}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+                    <span
+                      className={`rounded-md border px-2 py-0.5 font-semibold ${targetChannelMeta.badgeColor}`}
+                    >
+                      {targetChannelMeta.shortLabel} 이식
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-emerald-300 font-semibold">
+                    원본 반응지수 {activePost.engagement_rate}% 검증 공식
+                  </span>
+                </div>
+                <p className="mt-2 text-xs font-semibold text-white line-clamp-1">
+                  “{activePost.title}”
+                </p>
+              </div>
+            )}
+
+            {/* 컨트롤 박스: "어떤 채널/소재와 융합할 것인가?" */}
+            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                <SlidersHorizontal className="h-4 w-4" />
+                어떤 채널 · 소재와 융합할 것인가? (Crossover Parameter)
+              </div>
+
+              {/* 1) 이식할 타깃 SNS 채널 선택 */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-2">
+                  ① 이식할 타깃 채널 선택 (원본: {currentChannelMeta.shortLabel} ➔ 타깃: {targetChannelMeta.shortLabel})
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-7">
+                  {SNS_CHANNELS.map((ch) => {
+                    const isTarget = targetChannel === ch.id;
+                    return (
+                      <button
+                        key={ch.id}
+                        type="button"
+                        onClick={() => setTargetChannel(ch.id)}
+                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                          isTarget
+                            ? `${ch.activeBorder} shadow-sm`
+                            : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                        }`}
+                      >
+                        {ch.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2) 융합할 내 브랜드/상품/주제 소재 입력 */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-slate-300">
+                    ② 융합할 내 콘텐츠 소재 / 상품 / 캠페인 주제
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activePost) {
+                        runAiSynthesis(activePost, targetChannel, fusionTopic);
+                        showToast('✨ 입력하신 소재로 AI 크로스오버 기획안을 재합성했습니다!');
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    AI 제안 다시 생성
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={fusionTopic}
+                    onChange={(e) => setFusionTopic(e.target.value)}
+                    placeholder="예: 성수동 비건 베이커리 팝업, AI 회의록 SaaS 런칭, 스마트스토어 조명..."
+                    className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+                {/* 빠른 프리셋 칩 */}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 mr-1">빠른 소재 적용:</span>
+                  {QUICK_FUSION_TOPICS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setFusionTopic(preset)}
+                      className={`rounded-full border px-2.5 py-0.5 text-[10px] transition ${
+                        fusionTopic === preset
+                          ? 'border-indigo-500/60 bg-indigo-500/20 text-indigo-200 font-semibold'
+                          : 'border-slate-800 bg-slate-900/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ---------------------------------------------------------------
+                AI 제안 카드 1) 크로스 미디어 이식 (Cross-Media Adaptation)
+               --------------------------------------------------------------- */}
+            <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/15 p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/20 text-xs font-bold text-emerald-300">
+                    1
+                  </span>
+                  <h4 className="text-sm font-bold text-emerald-200">
+                    크로스 미디어 이식 공식 ({currentChannelMeta.shortLabel} ➔{' '}
+                    {targetChannelMeta.shortLabel})
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(
+                      'card-cross-media',
+                      crossMediaStrategy,
+                      '크로스 미디어 이식 전략'
+                    )
+                  }
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  {copiedKey === 'card-cross-media' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  복사
+                </button>
+              </div>
+              <textarea
+                rows={3}
+                value={crossMediaStrategy}
+                onChange={(e) => setCrossMediaStrategy(e.target.value)}
+                className="w-full rounded-xl border border-emerald-500/20 bg-slate-950/70 p-3 text-xs leading-relaxed text-slate-200 focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+
+            {/* ---------------------------------------------------------------
+                AI 제안 카드 2) 신규 콘텐츠 / 상품 기획 (New Content Planning)
+               --------------------------------------------------------------- */}
+            <div className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-950/15 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/20 text-xs font-bold text-indigo-300">
+                    2
+                  </span>
+                  <h4 className="text-sm font-bold text-indigo-200">
+                    신규 콘텐츠 · 상품 기획안 (제목 / 썸네일 / 전개 구조)
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(
+                      'card-content-plan',
+                      `[제목]\n${customTitle}\n\n[썸네일/비주얼]\n${customThumbnailConcept}\n\n[전개 구조]\n${contentOutline}`,
+                      '신규 콘텐츠 기획안'
+                    )
+                  }
+                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/20"
+                >
+                  {copiedKey === 'card-content-plan' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  기획안 복사
+                </button>
+              </div>
+
+              {/* 맞춤형 제목 / 후킹 카피 */}
+              <div>
+                <label className="block text-[11px] font-semibold text-indigo-300 mb-1">
+                  🎯 배운 요소를 적용한 나만의 제목 / 첫 줄 후킹 카피
+                </label>
+                <input
+                  type="text"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs font-semibold text-white focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              {/* 썸네일 / 비주얼 구조 */}
+              <div>
+                <label className="block text-[11px] font-semibold text-sky-300 mb-1">
+                  🖼️ 나만의 썸네일 / 비주얼 레이아웃 연출안
+                </label>
+                <textarea
+                  rows={2}
+                  value={customThumbnailConcept}
+                  onChange={(e) => setCustomThumbnailConcept(e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-xs leading-relaxed text-slate-200 focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              {/* 본문/영상 4단 전개 구조 */}
+              <div>
+                <label className="block text-[11px] font-semibold text-amber-300 mb-1">
+                  📐 본문 · 영상 4단 전개 구조 &amp; 댓글 트리거 설계
+                </label>
+                <textarea
+                  rows={4}
+                  value={contentOutline}
+                  onChange={(e) => setContentOutline(e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-xs leading-relaxed text-slate-200 focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* ---------------------------------------------------------------
+                AI 제안 카드 3) 메모 & 아이디어 보관함 (Supabase DB 저장 및 클립보드 복사)
+               --------------------------------------------------------------- */}
+            <div className="mt-4 rounded-xl border border-purple-500/30 bg-purple-950/15 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-500/20 text-xs font-bold text-purple-300">
+                    3
+                  </span>
+                  <h4 className="text-sm font-bold text-purple-200">
+                    메모 &amp; 아이디어 보관함 (Supabase DB 저장 · 클립보드 지원)
+                  </h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={ideaStatus}
+                    onChange={(e) =>
+                      setIdeaStatus(
+                        e.target.value as 'draft' | 'ready' | 'published'
+                      )
+                    }
+                    className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs text-slate-200 focus:border-purple-400 focus:outline-none"
+                  >
+                    <option value="draft">📝 초안 (Draft)</option>
+                    <option value="ready">🚀 발행 준비 (Ready)</option>
+                    <option value="published">✅ 발행 완료 (Published)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    연구 메모 / 실행 액션 아이템
+                  </label>
+                  <input
+                    type="text"
+                    value={memoText}
+                    onChange={(e) => setMemoText(e.target.value)}
+                    placeholder="예: 금요일 오전 9시 스마트블록 발행, 매니챗 키워드 '조명' 세팅..."
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-purple-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    분류 태그 (쉼표로 구분)
+                  </label>
+                  <input
+                    type="text"
+                    value={customTagsInput}
+                    onChange={(e) => setCustomTagsInput(e.target.value)}
+                    placeholder="#크로스오버, #릴스이식, #상세페이지"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-purple-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(
+                      'vault-quick-copy',
+                      fullBlueprintMarkdown,
+                      '아이디어 전체 기획안'
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:border-slate-600 hover:text-white"
+                >
+                  <Copy className="h-3.5 w-3.5 text-purple-400" />
+                  클립보드 복사
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingIdea}
+                  onClick={handleSaveIdeaToDb}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-600/25 transition hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+                >
+                  <Bookmark className="h-3.5 w-3.5" />
+                  {isSavingIdea
+                    ? 'Supabase 저장 중...'
+                    : '보관함에 아이디어 저장 (Supabase DB)'}
+                </button>
+              </div>
+
+              {/* 저장된 아이디어 보관함 리스트 */}
+              <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-200">
+                    📚 저장된 내 아이디어 보관함 ({filteredSavedIdeas.length}건)
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setVaultFilterChannel('all')}
+                      className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                        vaultFilterChannel === 'all'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      전체
+                    </button>
+                    {SNS_CHANNELS.map((ch) => (
+                      <button
+                        key={ch.id}
+                        type="button"
+                        onClick={() => setVaultFilterChannel(ch.id)}
+                        className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                          vaultFilterChannel === ch.id
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {ch.shortLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="max-h-80 space-y-2.5 overflow-y-auto pr-1">
+                  {filteredSavedIdeas.map((idea) => {
+                    const srcMeta = SNS_CHANNELS.find(
+                      (c) => c.id === idea.source_channel
+                    );
+                    const tgtMeta = SNS_CHANNELS.find(
+                      (c) => c.id === idea.target_channel
+                    );
+                    return (
+                      <div
+                        key={idea.id}
+                        className={`rounded-xl border p-3 transition ${
+                          idea.is_pinned
+                            ? 'border-amber-500/40 bg-slate-900/95'
+                            : 'border-slate-800 bg-slate-950/75 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            {idea.is_pinned && (
+                              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                                📌 고정
+                              </span>
+                            )}
+                            <span className="font-semibold text-slate-300">
+                              {srcMeta?.shortLabel} ➔ {tgtMeta?.shortLabel}
+                            </span>
+                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-indigo-300">
+                              {idea.fusion_topic}
+                            </span>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                idea.status === 'ready'
+                                  ? 'bg-emerald-500/15 text-emerald-300'
+                                  : idea.status === 'published'
+                                  ? 'bg-sky-500/15 text-sky-300'
+                                  : 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              {idea.status.toUpperCase()}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleLoadIdeaToWorkspace(idea)}
+                              className="rounded px-2 py-0.5 text-[10px] font-semibold text-indigo-300 hover:bg-indigo-500/15"
+                            >
+                              불러오기
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopyText(
+                                  `idea-${idea.id}`,
+                                  `[${idea.fusion_topic}]\n제목: ${idea.custom_title}\n전략: ${idea.cross_media_strategy}\n썸네일: ${idea.custom_thumbnail_concept}\n구조:\n${idea.content_outline}\n메모: ${idea.memo}`,
+                                  '보관함 아이디어'
+                                )
+                              }
+                              className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+                              title="클립보드 복사"
+                            >
+                              {copiedKey === `idea-${idea.id}` ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePinIdea(idea)}
+                              className={`rounded p-1 hover:bg-slate-800 ${
+                                idea.is_pinned
+                                  ? 'text-amber-400'
+                                  : 'text-slate-500 hover:text-slate-300'
+                              }`}
+                              title="상단 고정"
+                            >
+                              <Pin className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteIdea(idea.id)}
+                              className="rounded p-1 text-slate-500 hover:bg-rose-500/15 hover:text-rose-400"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="mt-1.5 text-xs font-bold text-white">
+                          {idea.custom_title}
+                        </p>
+                        {idea.memo && (
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            💡 메모: {idea.memo}
+                          </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {idea.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400 border border-slate-800"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =====================================================================
+          모달: 새 SNS 성공 사례 레퍼런스 등록
+         ===================================================================== */}
+      {isNewPostModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white">
+                ➕ [{currentChannelMeta.shortLabel}] 새 바이럴 성공 사례 등록
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsNewPostModalOpen(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                닫기 ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddNewReferencePost} className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  바이럴 성장 유형
+                </label>
+                <select
+                  value={newPostViralType}
+                  onChange={(e) =>
+                    setNewPostViralType(e.target.value as PostViralType)
+                  }
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white"
+                >
+                  <option value="spike">🔥 급상승 떡상 (Spike)</option>
+                  <option value="steady">📈 꾸준한 바이럴 (Steady)</option>
+                  <option value="long_tail">🌲 롱테일 스테디셀러 (Long-tail)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  포스팅 제목 / 대표 헤드라인
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newPostTitle}
+                  onChange={(e) => setNewPostTitle(e.target.value)}
+                  placeholder="예: 광고비 0원으로 릴스 100만뷰 만든 첫 2초 편집 공식"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  초반 3초 / 첫 문장 후킹 카피
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={newPostHook}
+                  onChange={(e) => setNewPostHook(e.target.value)}
+                  placeholder="예: 아직도 영상 시작할 때 인사부터 하시나요? 그 순간 80%가 이탈합니다."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    채널 / 작성자명
+                  </label>
+                  <input
+                    type="text"
+                    value={newPostAuthor}
+                    onChange={(e) => setNewPostAuthor(e.target.value)}
+                    placeholder="@creator_handle"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    해시태그 / 키워드 (쉼표 구분)
+                  </label>
+                  <input
+                    type="text"
+                    value={newPostKeywords}
+                    onChange={(e) => setNewPostKeywords(e.target.value)}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsNewPostModalOpen(false)}
+                  className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500"
+                >
+                  AI 3줄 분해 및 등록하기
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
