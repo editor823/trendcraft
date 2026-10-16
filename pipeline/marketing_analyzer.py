@@ -1,14 +1,14 @@
 """
-TrendCraft Marketing Lab Analyzer (marketing_analyzer.py)
-==========================================================
-수집된 7대 SNS 바이럴 게시글을 AI로 역공학 분석하고 Supabase에 적재하는 모듈
+TrendCraft Marketing Lab Analyzer (marketing_analyzer.py) - 대중 라이프스타일 전면 개편판
+========================================================================================
+수집된 7대 SNS 대중 라이프스타일 바이럴 게시글을 AI로 역공학 분석하고 Supabase에 적재하는 모듈
 - Gemini 2.5 Flash 모델 연동 (google-genai)
-- 3대 핵심 성공 요인 자동 분해:
-  ① 후킹 포인트 (Hook Point)
-  ② 비주얼 / 전개 레이아웃 구조 (Visual Structure)
-  ③ 댓글 / 공유 / 체류시간 유도 장치 (Comment Trigger)
-- 타 SNS 채널 이식을 위한 크로스오버 추천 블루프린트 (crossover_blueprints) 생성
-- public.marketing_lab_posts 테이블에 안전한 저장 및 갱신 (Upsert)
+- 대중 라이프스타일 3대 핵심 성공 요인 자동 분해:
+  ① 후킹 포인트 (Hook Point): 대중의 일상 결핍, 호기심, 공감대를 어떻게 3초 안에 자극했는가?
+  ② 비주얼 / 전개 구조 (Visual Structure): 군침 도는 클로즈업, 비포/애프터, 빠른 컷편집, 넘버링 구조
+  ③ 댓글 / 공유 / 체류시간 유도 장치 (Comment Trigger): 태그 유발, 저장 욕구, 열린 질문, 꿀팁 소장
+- 타 SNS 채널 이식을 위한 실전 크로스오버 추천 블루프린트 (crossover_blueprints) 생성
+- 기존 IT 편향 구버전 레코드 자동 정리 및 public.marketing_lab_posts 테이블에 깨끗하게 적재 (Upsert)
 """
 
 import os
@@ -41,79 +41,102 @@ def get_supabase_client() -> Client:
 
 
 # =============================================================================
-# 1. 고품질 바이럴 역공학 시맨틱 룰베이스 엔진 (Gemini Fallback & 안전장치)
+# 0. 구버전 IT 편향 레코드 정리 함수 (클린업)
+# =============================================================================
+def cleanup_legacy_it_posts(supabase: Client) -> int:
+    """기존에 등록되어 있던 좁은 IT/SaaS/프롬프트 편향 게시글들을 정리"""
+    logger.info("🧹 기존 IT 편향 데이터 필터링 및 정리 작업 진행 중...")
+    it_keywords = ["AI", "SaaS", "프롬프트", "GA4", "코딩", "파이프라인", "마이크로 앱", "B2B"]
+    deleted_count = 0
+
+    try:
+        # 전체 목록 조회
+        res = supabase.table("marketing_lab_posts").select("id, title").execute()
+        if res.data:
+            for row in res.data:
+                title = row.get("title", "")
+                if any(kw.lower() in title.lower() for kw in it_keywords):
+                    supabase.table("marketing_lab_posts").delete().eq("id", row["id"]).execute()
+                    deleted_count += 1
+        logger.info(f"✔ 구버전 IT 편향 게시글 {deleted_count}건 정리 완료.")
+    except Exception as exc:
+        logger.warning(f"기존 IT 데이터 정리 중 알림: {exc}")
+
+    return deleted_count
+
+
+# =============================================================================
+# 1. 고품질 대중 바이럴 역공학 시맨틱 룰베이스 엔진 (Gemini Fallback & 안전장치)
 # =============================================================================
 def generate_heuristic_breakdown(post: Dict[str, Any]) -> Dict[str, Any]:
-    """Gemini API 키가 없거나 응답 지연 시 발동하는 전문 마케팅 역공학 엔진"""
+    """대중 라이프스타일 7대 SNS 문법에 최적화된 마케팅 역공학 엔진"""
     channel = post.get("channel", "youtube")
-    viral_type = post.get("viral_type", "spike")
     title = post.get("title", "")
     hook = post.get("hook_copy", "")
 
     channel_rules = {
         "youtube": {
-            "hook": f"제목과 썸네일에서 직관적인 수치와 결핍을 자극하고, 영상 시작 3초 안에 결론 떡밥을 던져 시청 지속시간(AVD)을 60% 이상으로 유지함. ({hook[:40]}...)",
-            "visual": "전반부 3분할 썸네일 대비감 극대화 + 본문 5초 간격 화면 줌인/줌아웃 전환 및 효과음 컷편집으로 시각적 지루함 원천 차단.",
-            "comment": "영상 말미에 '본문에 쓰인 노코드 템플릿 시트는 고정 댓글 링크에서 무료 공유'를 안내하여 폭발적인 댓글 및 대기 유입 유도.",
-            "target": "threads",
-            "formula": "유튜브 롱폼 핵심 요약 ➔ 쓰레드 7단 텍스트 타래 이식",
+            "hook": f"첫 2초에 시각적 하이라이트(완성 요리, 비포/애프터, 리얼한 표정)를 배치하고, 직관적인 수치와 결핍('5분 컷', '2천원짜리', '무릎 안 아픈')으로 시청자의 이탈을 방어함. ({hook[:40]}...)",
+            "visual": "조리/사용/운동 과정을 3~5초 단위 빠른 컷전환과 직관적인 텍스트 자막, 귀를 사로잡는 ASMR 효과음으로 시청 몰입도 극대화.",
+            "comment": "고정 댓글에 '자세한 구매 좌표 및 재료 황금 비율 정리'를 안내하여 시청자가 영상을 멈추고 댓글창을 열게 만들어 알고리즘 추천 점수 폭증.",
+            "target": "instagram",
+            "formula": "유튜브 인기 영상 ➔ 인스타그램 15초 릴스 및 10장 캐러셀 이식",
         },
         "naver_blog": {
-            "hook": f"스마트블록 상위 노출 검색 의도(DIA+)에 맞춰 첫 문단 3줄 안에 핵심 요약과 직접 겪은 Before/After 후기를 배치. ({hook[:40]}...)",
-            "visual": "텍스트 3줄마다 직접 촬영한 고화질 사진과 움직이는 GIF, 비교 요약표를 삽입하여 스마트폰 모바일 가독성 최적화.",
-            "comment": "'자세한 견적서와 엑셀 양식이 필요하신 분은 이웃 추가 후 비밀댓글 남겨주세요'라는 안전 장치로 체류시간과 공감수 증폭.",
-            "target": "instagram",
-            "formula": "네이버 블로그 꿀팁 ➔ 인스타그램 10장 캐러셀 카드뉴스 이식",
-        },
-        "seo_blog": {
-            "hook": f"구글 및 AI 검색엔진(Perplexity, SearchGPT)이 답변 출처로 바로 인용할 수 있는 H2 질문형 정의문으로 시작. ({hook[:40]}...)",
-            "visual": "체계적인 H2/H3 계층 구조, 벤치마크 비교표, 코드 블록 및 인포그래픽 다이어그램을 배치하여 전문 아티클 신뢰도 확보.",
-            "comment": "아티클 중간 및 하단에 관련 계산기 위젯과 무료 리드 마그넷(뉴스레터 구독 폼)을 연결하여 이메일 리드 전환 극대화.",
-            "target": "x",
-            "formula": "심층 테크 아티클 ➔ X(Twitter) 핵심 데이터 스레드 이식",
+            "hook": f"네이버 스마트블록 검색 의도에 맞추어 본문 최상단에 실제 경험한 '내돈내산 솔직 요약'과 '핵심 장단점 3줄 정리'를 선배치. ({hook[:40]}...)",
+            "visual": "스마트폰 모바일 화면에 최적화된 사진 3장당 텍스트 2줄 배치, 움직이는 GIF 움짤, 지도 및 가격표 캡처로 평균 체류시간 4분 이상 확보.",
+            "comment": "'주차 꿀팁 및 숨겨진 할인 방법이 궁금하신 분은 비밀댓글 남겨주세요'라는 안전장치로 공감과 댓글 수치 증폭.",
+            "target": "threads",
+            "formula": "네이버 블로그 실생활 리뷰 ➔ 쓰레드 핵심 팁 요약 타래 이식",
         },
         "instagram": {
-            "hook": f"스크롤을 내리던 사용자가 1.5초 안에 멈추도록 화면 중앙에 굵은 고대비 텍스트와 충격적인 결과 화면을 동시 노출. ({hook[:40]}...)",
-            "visual": "배경 릴스 영상 루프(Loop) 재생 + 자막 폰트 하이라이트 애니메이션으로 2회 이상 반복 시청 유도.",
-            "comment": "캡션에 '댓글로 [치트키]라고 남기시면 무료 링크를 DM으로 자동 발송해드립니다' (ManyChat 챗봇 트리거 연동).",
-            "target": "threads",
-            "formula": "인스타 릴스 비주얼 훅 ➔ 쓰레드 심층 비하인드 스토리 타래 이식",
+            "hook": f"스크롤을 내리던 엄지손가락을 1.5초 만에 멈추게 하는 충격적인 Before/After 비주얼과 중앙 볼드 텍스트 훅. ({hook[:40]}...)",
+            "visual": "반복 시청(Loop)을 유도하는 10~15초 짧은 영상 루프 및 마지막 슬라이드에 요약본을 넣어 저장(Save) 행동 유도.",
+            "comment": "캡션에 '댓글로 [레시피/꿀팁]이라고 남겨주시면 DM으로 표를 즉시 보내드려요'라는 ManyChat 챗봇 트리거로 반응 폭발.",
+            "target": "youtube",
+            "formula": "인스타 화제 릴스 ➔ 유튜브 쇼츠 60초 풀버전 이식",
         },
         "threads": {
-            "hook": f"통념을 정면으로 반박하는 첫 문장('열심히 일하지 마라', '아직도 OO하나요?')으로 피드 스크롤을 완전히 제어. ({hook[:40]}...)",
-            "visual": "문단 사이 공백 줄바꿈을 넉넉히 주어 모바일에서 읽기 편하게 만들고 1번~5번 넘버링 리스트로 스킵 불가능한 구조 구축.",
-            "comment": "타래의 마지막 트윗에 '여러분의 생각은 어떠신가요? 1번 vs 2번 중 선택해주세요'라는 열린 질문으로 답글 토론 유발.",
+            "hook": f"대중의 통념을 기분 좋게 비틀거나 격한 공감을 자아내는 단도직입적 첫 문장으로 피드 주목도를 100% 장악. ({hook[:40]}...)",
+            "visual": "문단 사이 공백 줄바꿈을 넉넉히 준 깔끔한 단문 구성과 1~5번 넘버링 리스트로 스킵할 수 없는 흡인력 발휘.",
+            "comment": "타래 마지막에 '여러분의 생각은 어떠신가요?' 혹은 '주변에 이런 사람 꼭 있죠?'라는 질문으로 폭풍 답글 유발.",
             "target": "naver_blog",
-            "formula": "쓰레드 통념 파괴 타래 ➔ 네이버 블로그 심층 분석 칼럼 이식",
+            "formula": "쓰레드 공감 썰 타래 ➔ 네이버 블로그 심층 경험 칼럼 이식",
         },
         "x": {
-            "hook": f"단 한 줄의 강력한 수치 증명('매출 2배', '48시간 만에 완성')과 스크린샷 1장으로 기술적 신뢰성을 즉각 증명. ({hook[:40]}...)",
-            "visual": "전체 글을 1/N 타래(Thread)로 연결하고 핵심 프롬프트와 코드 스니펫 이미지를 삽입하여 북마크(Save) 유도.",
-            "comment": "'이 글이 도움 되셨다면 1번째 트윗을 RT(재게시)하고 북마크해두세요'라는 명확하고 직접적인 CTA 제공.",
-            "target": "seo_blog",
-            "formula": "X 테크 트렌드 스레드 ➔ 장문 SEO 가이드 아티클 이식",
+            "hook": f"누구나 바로 써먹을 수 있는 '초간단 조합법'이나 '직장인 리얼 공감'을 압축된 2줄 문장과 사진 1장으로 강렬하게 증명. ({hook[:40]}...)",
+            "visual": "필요한 정보만 군더더기 없이 요약한 이미지 캡처와 타래(Thread) 구조로 타임라인에서 인용 알티(Quote RT) 폭주.",
+            "comment": "'나중에 보려고 알티(RT)하고 북마크해둡니다'라는 자발적 소장 심리를 자극하는 실전형 생활 치트키 구성.",
+            "target": "instagram",
+            "formula": "X 화제의 생활 팁 ➔ 인스타그램 카드뉴스 디자인 이식",
         },
         "facebook": {
-            "hook": f"광고처럼 보이지 않는 메모장 캡처나 진솔한 일기장 고백 톤의 도입부로 방어 기제를 완벽히 무력화. ({hook[:40]}...)",
-            "visual": "화려한 일러스트 대신 날것(Raw) 느낌의 스마트폰 화면 캡처, 카카오톡 대화방 캡처 이미지로 진정성 배가.",
-            "comment": "타겟 고객이 공감할 수밖에 없는 현실 고충을 언급하며 '동료 마케터 태그하기' 및 선택형 번호 댓글 참여 유도.",
+            "hook": f"광고 느낌이 전혀 없는 날것 그대로의 생활 밀착형 스토리텔링과 감동/찬반 대립 구도의 헤드라인. ({hook[:40]}...)",
+            "visual": "실제 현장 사진, 스마트폰 대화 캡처 등 진정성이 묻어나는 비주얼로 피드 스크롤 스톱 달성.",
+            "comment": "친구/가족/동료를 댓글에 태그(@)하게 만들고, '1번 vs 2번' 선택형 댓글을 달게 만드는 소셜 인게이지먼트 장치.",
             "target": "youtube",
-            "formula": "페이스북 고성과 광고 카피 ➔ 유튜브 쇼츠 60초 스토리보드 이식",
+            "formula": "페이스북 감동/화제 사연 ➔ 유튜브 쇼츠 내레이션 스토리보드 이식",
+        },
+        "seo_blog": {
+            "hook": f"검색 사용자가 가장 궁금해하는 '구매 전 필수 체크리스트'와 '비교 표'를 H2 질문형 소제목 바로 아래 직관적으로 배치. ({hook[:40]}...)",
+            "visual": "실사용 스펙 비교 테이블, 인포그래픽 데이터 다이어그램, FAQ 스키마 구조로 구글 및 네이버 검색 1위 점유.",
+            "comment": "아티클 말미에 관련 무료 체크리스트 다운로드 링크를 제공하여 방문자의 북마크 및 메신저 공유 유도.",
+            "target": "x",
+            "formula": "심층 비교 구매 가이드 ➔ X(Twitter) 핵심 요약 스레드 이식",
         },
     }
 
     rule = channel_rules.get(channel, channel_rules["youtube"])
 
-    # 추천 크로스오버 블루프린트 1건 자동 생성
     blueprints = [
         {
             "targetChannel": rule["target"],
             "formulaName": rule["formula"],
-            "coreAngle": f"{title}의 핵심 원리를 {rule['target']} 알고리즘 문법에 맞게 재구성",
+            "coreAngle": f"{title}의 대중적 바이럴 포인트를 {rule['target']} 채널 알고리즘에 맞게 각색",
             "adaptationTips": [
-                "원작의 핵심 후킹 메시지를 타겟 플랫폼의 초반 3초/첫 문장 문법으로 변환",
-                "타겟 플랫폼 사용자들이 가장 선호하는 포맷(카드뉴스/타래/쇼츠)으로 비주얼 재가공",
-                "댓글 참여를 유도하는 맞춤형 인터랙션 CTA 장치 부착",
+                "대중의 일상 결핍과 공감대를 타겟 플랫폼의 첫 화면/첫 문장 문법으로 즉시 번역",
+                "타겟 플랫폼 사용자들이 가장 선호하는 시각적 포맷(쇼츠/릴스/캐러셀/타래)으로 비주얼 재구성",
+                "친구 태그 및 소장을 부르는 맞춤형 인터랙션 CTA 장치 부착",
             ],
         }
     ]
@@ -130,12 +153,13 @@ def generate_heuristic_breakdown(post: Dict[str, Any]) -> Dict[str, Any]:
 # 2. Gemini 2.5 Flash 기반 정밀 역공학 분석
 # =============================================================================
 def analyze_post_with_gemini(post: Dict[str, Any]) -> Dict[str, Any]:
-    """Gemini API를 호출하여 포스트의 3대 성공 요인과 크로스오버 전략을 도출"""
+    """Gemini API를 호출하여 대중 라이프스타일 바이럴의 3대 성공 요인 분해"""
     if not GEMINI_API_KEY:
         return generate_heuristic_breakdown(post)
 
-    prompt = f"""당신은 전 세계 7대 SNS 알고리즘과 바이럴 메커니즘을 분석하는 글로벌 수석 바이럴 마케터입니다.
-다음 분석 대상 SNS 게시글을 바탕으로, 왜 이 콘텐츠가 터졌는지 3대 성공 요인을 초보자도 바로 이해할 수 있도록 명쾌하게 역공학 분석해 주세요.
+    prompt = f"""당신은 대한민국 대중들이 열광하는 유튜브, 인스타그램, 틱톡, 블로그의 떡상 콘텐츠를 분석하는 국내 최고의 수석 바이럴 마케터입니다.
+다음 대중 라이프스타일(요리, 살림, 운동, 캠핑, 직장인 공감, 꿀팁 등) 성공 콘텐츠를 바탕으로,
+왜 이 콘텐츠가 대중들의 폭발적인 반응을 이끌어냈는지 3대 성공 요인을 초보자도 바로 이해할 수 있도록 명쾌하게 역공학 분석해 주세요.
 
 [게시글 정보]
 - SNS 채널: {post.get('channel')}
@@ -143,19 +167,19 @@ def analyze_post_with_gemini(post: Dict[str, Any]) -> Dict[str, Any]:
 - 초반 문구: {post.get('hook_copy')}
 - 크리에이터: {post.get('author_name')}
 - 지표: 조회수 {post.get('views_count'):,} / 좋아요 {post.get('likes_count'):,} / 댓글 {post.get('comments_count'):,}
-- 본문 요약: {post.get('content_snippet', '')}
+- 내용 요약: {post.get('content_snippet', '')}
 
 반드시 아래 JSON 형식으로만 응답해 주세요 (마크다운 코드블록 없이 순수 JSON만 반환):
 {{
-  "ai_hook_point": "1) 후킹 포인트 분석 (초반 3초/첫 문장에서 왜 클릭했고 왜 이탈하지 않았는가?)",
-  "ai_visual_structure": "2) 비주얼 및 전개 구조 분석 (썸네일, 레이아웃, 기승전결 배치가 어떻게 몰입감을 높였는가?)",
-  "ai_comment_trigger": "3) 댓글 및 공유 유도 장치 (알고리즘을 태우기 위해 어떤 댓글/저장 유도 트리거를 썼는가?)",
+  "ai_hook_point": "1) 후킹 포인트 분석 (초반 2~3초/첫 문장에서 대중의 시선을 어떻게 사로잡았는가?)",
+  "ai_visual_structure": "2) 비주얼 및 전개 구조 분석 (화면 연출, 컷편집, 자막 배치가 어떻게 끝까지 보게 만들었는가?)",
+  "ai_comment_trigger": "3) 댓글 및 공유 유도 장치 (알고리즘을 태우기 위해 어떤 댓글/저장/친구 태그 유도 장치를 썼는가?)",
   "crossover_blueprints": [
     {{
-      "targetChannel": "threads",
-      "formulaName": "타 채널 이식 공식 명칭",
-      "coreAngle": "이식할 때 가져갈 핵심 컨셉",
-      "adaptationTips": ["팁 1", "팁 2", "팁 3"]
+      "targetChannel": "instagram",
+      "formulaName": "타 플랫폼 이식 전략 명칭",
+      "coreAngle": "이식할 때 가져갈 핵심 포인트",
+      "adaptationTips": ["실전 팁 1", "실전 팁 2", "실전 팁 3"]
     }}
   ]
 }}
@@ -168,7 +192,6 @@ def analyze_post_with_gemini(post: Dict[str, Any]) -> Dict[str, Any]:
             contents=prompt,
         )
         text = response.text.strip()
-        # 혹시 마크다운 블록이 섞여있다면 제거
         if text.startswith("```json"):
             text = text[7:]
         if text.startswith("```"):
@@ -185,7 +208,7 @@ def analyze_post_with_gemini(post: Dict[str, Any]) -> Dict[str, Any]:
             "crossover_blueprints": parsed.get("crossover_blueprints", []),
         }
     except Exception as exc:
-        logger.warning(f"Gemini API 호출 중 알림 ({exc}) -> 휴리스틱 역공학 엔진으로 안전하게 분석 완료")
+        logger.warning(f"Gemini API 호출 알림 ({exc}) -> 휴리스틱 대중 역공학 엔진으로 안전하게 분석 완료")
         return generate_heuristic_breakdown(post)
 
 
@@ -193,7 +216,7 @@ def analyze_post_with_gemini(post: Dict[str, Any]) -> Dict[str, Any]:
 # 3. Supabase DB 적재 (marketing_lab_posts Upsert)
 # =============================================================================
 def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, Any]]) -> Dict[str, int]:
-    """분석 완료된 SNS 게시글을 Supabase marketing_lab_posts 테이블에 저장"""
+    """분석 완료된 대중 라이프스타일 게시글을 Supabase marketing_lab_posts 테이블에 저장"""
     saved_count = 0
     updated_count = 0
 
@@ -207,14 +230,14 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
             "viral_type": post.get("viral_type", "spike"),
             "title": title,
             "hook_copy": post.get("hook_copy", ""),
-            "author_name": post.get("author_name", "익명"),
+            "author_name": post.get("author_name", "인기 크리에이터"),
             "source_url": source_url,
             "views_count": int(post.get("views_count", 0)),
             "likes_count": int(post.get("likes_count", 0)),
             "comments_count": int(post.get("comments_count", 0)),
             "shares_count": int(post.get("shares_count", 0)),
-            "engagement_rate": float(post.get("engagement_rate", 5.0)),
-            "growth_velocity": post.get("growth_velocity", "+1,200% / 24h"),
+            "engagement_rate": float(post.get("engagement_rate", 8.0)),
+            "growth_velocity": post.get("growth_velocity", "+2,400% / 24h"),
             "keywords": post.get("keywords", []),
             "ai_hook_point": post.get("ai_hook_point", ""),
             "ai_visual_structure": post.get("ai_visual_structure", ""),
@@ -223,7 +246,6 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
         }
 
         try:
-            # 중복 체크: 동일한 채널과 제목이 이미 존재하는지 확인
             existing = (
                 supabase.table("marketing_lab_posts")
                 .select("id")
@@ -234,12 +256,10 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
             )
 
             if existing.data and len(existing.data) > 0:
-                # 이미 존재하면 지표 및 AI 분석 업데이트
                 existing_id = existing.data[0]["id"]
                 supabase.table("marketing_lab_posts").update(record).eq("id", existing_id).execute()
                 updated_count += 1
             else:
-                # 신규 삽입
                 supabase.table("marketing_lab_posts").insert(record).execute()
                 saved_count += 1
 
@@ -252,19 +272,28 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
 # =============================================================================
 # 전체 분석 & 적재 통합 함수
 # =============================================================================
-def process_and_save_marketing_posts(raw_posts: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """수집된 원시 SNS 포스트를 분석하고 DB에 저장"""
+def process_and_save_marketing_posts(
+    raw_posts: List[Dict[str, Any]],
+    cleanup_it_posts: bool = True
+) -> Dict[str, Any]:
+    """수집된 원시 대중 포스트를 분석하고 DB에 저장"""
     logger.info("==================================================================")
-    logger.info("🧠 TrendCraft 마케팅 연구소 AI 역공학 분석 및 DB 적재 시작")
+    logger.info("🧠 TrendCraft 마케팅 연구소 [대중 라이프스타일 AI 분석 & DB 적재]")
     logger.info("==================================================================")
 
     supabase = get_supabase_client()
+
+    # 필요 시 기존 구버전 IT 편향 데이터 1회 정리
+    deleted_it_count = 0
+    if cleanup_it_posts:
+        deleted_it_count = cleanup_legacy_it_posts(supabase)
+
     analyzed_list: List[Dict[str, Any]] = []
 
     for i, post in enumerate(raw_posts, 1):
         ch = post.get("channel", "youtube").upper()
         title = post.get("title", "")
-        logger.info(f"[{i}/{len(raw_posts)}] AI 성공 요인 3줄 분해 진행 중... ({ch}: {title[:28]}...)")
+        logger.info(f"[{i}/{len(raw_posts)}] AI 대중 바이럴 3줄 분해 진행 중... ({ch}: {title[:28]}...)")
 
         ai_result = analyze_post_with_gemini(post)
         merged = dict(post)
@@ -274,19 +303,21 @@ def process_and_save_marketing_posts(raw_posts: List[Dict[str, Any]]) -> Dict[st
     logger.info("💾 분석 완료 데이터 Supabase DB 적재(Upsert) 시작...")
     db_result = save_analyzed_posts_to_db(supabase, analyzed_list)
 
-    logger.info(f"✨ DB 적재 완료! 신규 등록: {db_result['saved']}건, 기존 갱신: {db_result['updated']}건")
+    logger.info(f"✨ DB 적재 완료! 신규: {db_result['saved']}건, 갱신: {db_result['updated']}건, IT정리: {deleted_it_count}건")
     return {
         "total_analyzed": len(analyzed_list),
         "db_saved": db_result["saved"],
         "db_updated": db_result["updated"],
+        "deleted_legacy_it": deleted_it_count,
     }
 
 
 if __name__ == "__main__":
     from marketing_collector import collect_all_marketing_posts
     posts = collect_all_marketing_posts()
-    result = process_and_save_marketing_posts(posts)
+    result = process_and_save_marketing_posts(posts, cleanup_it_posts=True)
     print("\n[실행 결과 요약]")
     print(f"- 분석된 게시글 수: {result['total_analyzed']}개")
     print(f"- 새로 등록된 DB 레코드: {result['db_saved']}개")
     print(f"- 업데이트된 DB 레코드: {result['db_updated']}개")
+    print(f"- 정리된 구버전 IT 데이터: {result['deleted_legacy_it']}개")

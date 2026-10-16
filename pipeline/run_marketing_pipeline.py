@@ -84,20 +84,21 @@ def run_pipeline():
     logger.info(f"✅ 1단계 완료: 총 {len(raw_posts)}건의 데이터 수집 성공!")
 
     logger.info("🧠 2단계: AI 역공학 3줄 분석 & Supabase DB 적재 시작...")
-    summary = process_and_save_marketing_posts(raw_posts)
+    summary = process_and_save_marketing_posts(raw_posts, cleanup_it_posts=True)
 
     elapsed = round(time.time() - start_time, 2)
 
     print("\n" + "=" * 65)
-    print("🎉 [마케팅 연구소 파이프라인 실행 완료 보고서]")
+    print("🎉 [마케팅 연구소 파이프라인 실행 완료 보고서 (대중 라이프스타일 전면 개편)]")
     print(f" • 실행 시각     : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f" • 총 수집/분석  : {summary['total_analyzed']} 건")
     print(f" • 신규 DB 등록  : {summary['db_saved']} 건")
     print(f" • 기존 DB 갱신  : {summary['db_updated']} 건")
+    print(f" • 정리된 IT글   : {summary.get('deleted_legacy_it', 0)} 건 (IT 편향 완전 제거)")
     print(f" • 소요 시간     : {elapsed} 초")
     print("=" * 65)
     print("👉 프론트엔드 대시보드(http://localhost:3000)의 [🔬 마케팅 연구소] 탭에서")
-    print("   방금 분석되어 적재된 최신 성공 사례들을 바로 확인하실 수 있습니다!\n")
+    print("   요리, 살림, 운동, 캠핑, 공감 유머 등 7대 SNS 대중 떡상 레퍼런스를 확인하세요!\n")
 
 
 if __name__ == "__main__":
