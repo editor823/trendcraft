@@ -1217,6 +1217,7 @@ export default function MarketingLab() {
   // --------------------------------------------------------------------------
   const [selectedChannel, setSelectedChannel] = useState<SnsChannel>('youtube');
   const [selectedViralFilter, setSelectedViralFilter] = useState<ViralPattern>('all');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [posts, setPosts] = useState<MarketingLabPost[]>(INITIAL_MARKETING_POSTS);
   const [activePostId, setActivePostId] = useState<string>(INITIAL_MARKETING_POSTS[0].id);
@@ -1349,14 +1350,30 @@ export default function MarketingLab() {
         post.hook_copy.toLowerCase().includes(q) ||
         post.keywords.some((k) => k.toLowerCase().includes(q)) ||
         post.author_name.toLowerCase().includes(q);
-      return matchChannel && matchViral && matchSearch;
+
+      // 5대 세부 카테고리 필터 (유튜브 등)
+      let matchSubCategory = true;
+      if (selectedSubCategory !== 'all') {
+        const subCat = selectedSubCategory.toLowerCase();
+        const hasKeywordMatch = post.keywords.some((k) => k.toLowerCase().includes(subCat));
+        const hasTitleMatch =
+          (selectedSubCategory === '역사/야담' && (post.title.includes('야사') || post.title.includes('야담') || post.title.includes('문명') || post.title.includes('역사'))) ||
+          (selectedSubCategory === '경제/지식' && (post.title.includes('경제') || post.title.includes('부의') || post.title.includes('트렌드') || post.title.includes('돈'))) ||
+          (selectedSubCategory === '심리학' && (post.title.includes('심리') || post.title.includes('인간') || post.title.includes('멘탈') || post.title.includes('처세'))) ||
+          (selectedSubCategory === '과학/미스터리' && (post.title.includes('과학') || post.title.includes('우주') || post.title.includes('미스터리') || post.title.includes('모션'))) ||
+          (selectedSubCategory === '이슈/사건사고' && (post.title.includes('사건') || post.title.includes('미제') || post.title.includes('프로파일링') || post.title.includes('실화')));
+        matchSubCategory = hasKeywordMatch || Boolean(hasTitleMatch);
+      }
+
+      return matchChannel && matchViral && matchSearch && matchSubCategory;
     });
-  }, [posts, selectedChannel, selectedViralFilter, searchQuery]);
+  }, [posts, selectedChannel, selectedViralFilter, searchQuery, selectedSubCategory]);
 
   // 채널 탭 변경 시 해당 채널의 첫 번째 카드를 자동 선택하고,
   // 크로스오버 효과를 극대화하기 위해 기본 타깃 채널을 다른 채널로 스마트 추천
   const handleSelectChannel = (channel: SnsChannel) => {
     setSelectedChannel(channel);
+    setSelectedSubCategory('all');
     const channelPosts = posts.filter((p) => p.channel === channel);
     if (channelPosts.length > 0) {
       setActivePostId(channelPosts[0].id);
@@ -1863,10 +1880,44 @@ export default function MarketingLab() {
                   </button>
                 )}
               </div>
+
+              {/* 세부 카테고리 필터 태그 ([전체], [역사/야담], [경제/지식], [심리학], [과학/미스터리], [이슈/사건사고]) */}
+              {selectedChannel === 'youtube' && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    분야:
+                  </span>
+                  {[
+                    { id: 'all', label: '전체' },
+                    { id: '역사/야담', label: '역사/야담' },
+                    { id: '경제/지식', label: '경제/지식' },
+                    { id: '심리학', label: '심리학' },
+                    { id: '과학/미스터리', label: '과학/미스터리' },
+                    { id: '이슈/사건사고', label: '이슈/사건사고' },
+                  ].map((cat) => {
+                    const isSelected = selectedSubCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedSubCategory(cat.id)}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-500'
+                            : 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* 게시글 분석 카드 리스트 */}
-            <div className="mt-4 space-y-4">
+            {/* 게시글 분석 카드 리스트 (20~30개 이상 스크롤 가능하도록 확장) */}
+            <div className="mt-4 space-y-4 max-h-[820px] overflow-y-auto pr-1.5">
               {isLoadingPosts ? (
                 <div className="flex items-center justify-center py-12 text-sm text-slate-500 dark:text-slate-400">
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin text-indigo-500" />
