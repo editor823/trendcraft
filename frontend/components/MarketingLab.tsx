@@ -53,6 +53,9 @@ import {
   MarketingLabPost,
   MarketingLabIdea,
   ChannelSpecificBlueprint,
+  UniqueSnsFormula,
+  RecommendedTargetChannel,
+  TitleKeywordPlacement,
   SNS_CHANNELS,
   VIRAL_PATTERNS,
 } from '../types/marketing';
@@ -760,6 +763,229 @@ const QUICK_FUSION_TOPICS = [
   '1인 지식창업가 전자책 & 뉴스레터 구독 퍼널',
 ];
 
+// 각 SNS 채널별 고유 성공 문법, 콘텐츠 볼륨 스펙, 추천 타깃 기본값
+const CHANNEL_DEFAULT_DECONSTRUCT_SPECS: Record<
+  SnsChannel,
+  {
+    unique_sns_formula: UniqueSnsFormula;
+    recommended_targets: RecommendedTargetChannel[];
+    title_keyword_placement: TitleKeywordPlacement;
+    title_hook_type: string;
+    image_count_info: string;
+    char_count: number;
+    content_duration_or_slides: string;
+  }
+> = {
+  youtube: {
+    unique_sns_formula: {
+      title: '유튜브 0~30초 시청 지속 시간(AVD) & 고정댓글 대화량',
+      name: '유튜브 0~30초 시청 지속 시간(AVD) & 고정댓글 대화량',
+      coreMetric: '초반 30초 잔존율(>70%) × CTR(클릭률 >10%)',
+      core_logic: '오프닝 5초 안에 결론의 충격적인 단면을 선공개하고 본론에서 단계별 전개로 이탈을 방어함.',
+      strategy: '오프닝 5초 안에 결론의 충격적인 단면을 선공개하고 본론에서 단계별 전개로 이탈을 방어함.',
+      algorithm_factor: '초반 30초 시청 유지율(AVD) 및 고정 댓글 대화 체인 수',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'naver_blog',
+        channelName: '네이버 블로그',
+        reason: '영상 스크립트를 롱폼 텍스트로 전환하여 네이버 검색 유입 및 체류시간 확보에 최적',
+      },
+      {
+        targetChannel: 'instagram',
+        channelName: '인스타그램',
+        reason: '핵심 하이라이트 30초를 릴스와 10장 카드뉴스로 재가공하여 도달 극대화',
+      },
+    ],
+    title_keyword_placement: 'front',
+    title_hook_type: '수치 충격형 & 공감 저격',
+    image_count_info: '썸네일 2종 (A/B 테스트)',
+    char_count: 1850,
+    content_duration_or_slides: '14분 20초 (롱폼)',
+  },
+  naver_blog: {
+    unique_sns_formula: {
+      title: '스마트블록 DIA+ 체류시간 & 전문성 부스팅',
+      name: '스마트블록 DIA+ 체류시간 & 전문성 부스팅',
+      coreMetric: '스크롤 완독 체류시간(3분 이상) × 이미지 10장 이상 체류',
+      core_logic: '초반 3줄 인용구로 검색 의도 즉시 충족 + 고화질 캡처 10장 이상 배치하여 스크롤 체류 유도.',
+      strategy: '초반 3줄 인용구로 검색 의도 즉시 충족 + 고화질 캡처 10장 이상 배치하여 스크롤 체류 유도.',
+      algorithm_factor: '스마트블록 C-Rank 신뢰도 및 DIA+ 문서 완독률',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'threads',
+        channelName: '쓰레드',
+        reason: '블로그 핵심 3줄 인용구와 요약을 쓰레드 타래로 공유하여 빠른 바이럴 유도',
+      },
+      {
+        targetChannel: 'seo_blog',
+        channelName: 'SEO 블로그',
+        reason: '검색 의도 분석 구조를 구글 E-E-A-T 구조로 이식하여 글로벌 구글 검색 유입 선점',
+      },
+    ],
+    title_keyword_placement: 'front',
+    title_hook_type: '스마트블록 키워드 직관형',
+    image_count_info: '이미지 12장 · GIF 2개',
+    char_count: 2350,
+    content_duration_or_slides: '스크롤 3분 40초',
+  },
+  seo_blog: {
+    unique_sns_formula: {
+      title: '구글 검색 E-E-A-T & 피처드 스니펫 선점',
+      name: '구글 검색 E-E-A-T & 피처드 스니펫 선점',
+      coreMetric: '검색 엔진 크롤러 인덱싱 속도 × 백링크 및 스니펫 점유',
+      core_logic: 'H2/H3 명확한 위계 목차 + 45단어 직관적 정의 스니펫 박스 배치로 생성형 AI 검색(GEO)까지 대응.',
+      strategy: 'H2/H3 명확한 위계 목차 + 45단어 직관적 정의 스니펫 박스 배치로 생성형 AI 검색(GEO)까지 대응.',
+      algorithm_factor: 'E-E-A-T 전문성 기둥 및 스키마 마크업 인덱싱',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'threads',
+        channelName: '쓰레드',
+        reason: '전문 기술/지식 분석 결과를 5단 타래로 요약하여 B2B 오디언스 인게이지먼트 확보',
+      },
+      {
+        targetChannel: 'x',
+        channelName: 'X (Twitter)',
+        reason: '핵심 데이터 도표와 인사이트를 280자 단일 트윗으로 공유하여 리트윗 촉발',
+      },
+    ],
+    title_keyword_placement: 'front',
+    title_hook_type: '해결책 제시형 E-E-A-T',
+    image_count_info: '도표/차트 3장',
+    char_count: 3100,
+    content_duration_or_slides: '완독 5분',
+  },
+  instagram: {
+    unique_sns_formula: {
+      title: '10장 카드뉴스 저장/공유 & ManyChat DM 유도',
+      name: '10장 카드뉴스 저장/공유 & ManyChat DM 유도',
+      coreMetric: '저장수(Saves) + DM 자동 발송 트리거 전환율',
+      core_logic: '1장 커버 강렬한 비포/애프터 + 2~9장 템플릿 + 10장 키워드 댓글 유도로 저장과 DM 폭발.',
+      strategy: '1장 커버 강렬한 비포/애프터 + 2~9장 템플릿 + 10장 키워드 댓글 유도로 저장과 DM 폭발.',
+      algorithm_factor: '알고리즘 최고 가중치인 저장(Save) 및 DM 공유 비율',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'naver_blog',
+        channelName: '네이버 블로그',
+        reason: '카드뉴스 10장의 요약본을 네이버 상세 설명 및 서식 다운로드 포스팅으로 확장',
+      },
+      {
+        targetChannel: 'threads',
+        channelName: '쓰레드',
+        reason: '인스타 비주얼 콘텐츠의 핵심 뒷이야기를 쓰레드 텍스트로 풀어 오가닉 바이럴',
+      },
+    ],
+    title_keyword_placement: 'middle',
+    title_hook_type: '시각적 비포/애프터 대비',
+    image_count_info: '카드뉴스 10장',
+    char_count: 650,
+    content_duration_or_slides: '카드뉴스 10슬라이드',
+  },
+  threads: {
+    unique_sns_formula: {
+      title: '첫 줄 스크롤 스토퍼 & 타래 논쟁 유도',
+      name: '첫 줄 스크롤 스토퍼 & 타래 논쟁 유도',
+      coreMetric: '답글(Replies) 대화 체인 수 × 프로필 클릭률',
+      core_logic: '한 줄 띄어쓰기 가독성 + 본인만의 뾰족한 소신으로 타래 토론 폭발 유도.',
+      strategy: '한 줄 띄어쓰기 가독성 + 본인만의 뾰족한 소신으로 타래 토론 폭발 유도.',
+      algorithm_factor: '알고리즘 최우선 가중치인 답글(Reply) 체인 길이',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'youtube',
+        channelName: '유튜브',
+        reason: '쓰레드에서 격렬한 토론이 일어난 소재를 유튜브 롱폼 영상의 토론 주제로 채택',
+      },
+      {
+        targetChannel: 'naver_blog',
+        channelName: '네이버 블로그',
+        reason: '타래의 반응 좋은 의견들을 종합 정리하여 네이버 칼럼 포스팅으로 재가공',
+      },
+    ],
+    title_keyword_placement: 'front',
+    title_hook_type: '통념 파괴형 논쟁 훅',
+    image_count_info: '텍스트 타래 5단 (이미지 1장)',
+    char_count: 480,
+    content_duration_or_slides: '5단 스레드 타래',
+  },
+  x: {
+    unique_sns_formula: {
+      title: '280자 수치 강조 훅 & 북마크 유도 체크리스트',
+      name: '280자 수치 강조 훅 & 북마크 유도 체크리스트',
+      coreMetric: '북마크(Bookmarks) 수 × 리트윗(Retweets)',
+      core_logic: '숫자/통계 전면 배치 + 데이터 캡처 첨부 + 타래 마지막에 저장용 체크리스트 제공.',
+      strategy: '숫자/통계 전면 배치 + 데이터 캡처 첨부 + 타래 마지막에 저장용 체크리스트 제공.',
+      algorithm_factor: '피드 노출 가중치 5배인 북마크(Bookmark) 전환율',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'threads',
+        channelName: '쓰레드',
+        reason: 'X의 수치 기반 팩트 트윗을 쓰레드 감성 타래로 변환하여 2030 오디언스 공략',
+      },
+      {
+        targetChannel: 'seo_blog',
+        channelName: 'SEO 블로그',
+        reason: '트윗에 포함된 팩트/통계 수치를 구글 검색 최적화 전문 리포트로 확장',
+      },
+    ],
+    title_keyword_placement: 'front',
+    title_hook_type: '수치/팩트 충격형',
+    image_count_info: '인포그래픽/캡처 1장',
+    char_count: 240,
+    content_duration_or_slides: '단일 훅 트윗 + 3단 타래',
+  },
+  facebook: {
+    unique_sns_formula: {
+      title: '공감형 스토리텔링 & 메모장 캡처 바이럴',
+      name: '공감형 스토리텔링 & 메모장 캡처 바이럴',
+      coreMetric: '공유(Shares) 수 × 댓글 태그(친구 소환)',
+      core_logic: '첫 3줄 현실적인 결핍 묘사 + 메모장/카톡 캡처 + 댓글 링크 유도로 자연스러운 공유 촉발.',
+      strategy: '첫 3줄 현실적인 결핍 묘사 + 메모장/카톡 캡처 + 댓글 링크 유도로 자연스러운 공유 촉발.',
+      algorithm_factor: '친구/그룹 공유 및 댓글 내 친구 소환 태깅율',
+    },
+    recommended_targets: [
+      {
+        targetChannel: 'instagram',
+        channelName: '인스타그램',
+        reason: '메모장 감성 스토리를 인스타그램 카드뉴스로 정돈하여 시각적 확산',
+      },
+      {
+        targetChannel: 'naver_blog',
+        channelName: '네이버 블로그',
+        reason: '페이스북 스토리텔링을 네이버 블로그의 이웃 공감형 수기 포스팅으로 연동',
+      },
+    ],
+    title_keyword_placement: 'middle',
+    title_hook_type: '현실 밀착 공감형',
+    image_count_info: '메모장 캡처 3장',
+    char_count: 950,
+    content_duration_or_slides: '카드 4장',
+  },
+};
+
+function hydratePostWithDeconstructSpec(post: MarketingLabPost): MarketingLabPost {
+  const seedPost = INITIAL_MARKETING_POSTS.find((p) => p.id === post.id);
+  const chSpec = CHANNEL_DEFAULT_DECONSTRUCT_SPECS[post.channel] || CHANNEL_DEFAULT_DECONSTRUCT_SPECS.youtube;
+
+  return {
+    ...post,
+    title_keyword_placement: post.title_keyword_placement || seedPost?.title_keyword_placement || chSpec.title_keyword_placement,
+    title_hook_type: post.title_hook_type || seedPost?.title_hook_type || chSpec.title_hook_type,
+    image_count_info: post.image_count_info || seedPost?.image_count_info || chSpec.image_count_info,
+    char_count: post.char_count ?? seedPost?.char_count ?? chSpec.char_count,
+    content_duration_or_slides: post.content_duration_or_slides || seedPost?.content_duration_or_slides || chSpec.content_duration_or_slides,
+    unique_sns_formula: post.unique_sns_formula || seedPost?.unique_sns_formula || chSpec.unique_sns_formula,
+    recommended_targets:
+      post.recommended_targets && post.recommended_targets.length > 0
+        ? post.recommended_targets
+        : seedPost?.recommended_targets || chSpec.recommended_targets,
+  };
+}
+
 // ----------------------------------------------------------------------------
 // AI 크로스오버 재창조 엔진 (선택된 분석 데이터 × 타깃 채널 × 내 소재 융합 생성기)
 // ----------------------------------------------------------------------------
@@ -1037,8 +1263,9 @@ export default function MarketingLab() {
       ]);
       if (!isMounted) return;
       if (dbPosts && dbPosts.length > 0) {
-        setPosts(dbPosts);
-        setActivePostId(dbPosts[0].id);
+        const hydratedPosts = dbPosts.map(hydratePostWithDeconstructSpec);
+        setPosts(hydratedPosts);
+        setActivePostId(hydratedPosts[0].id);
       }
       if (dbIdeas && dbIdeas.length > 0) {
         setSavedIdeas(dbIdeas);
@@ -1636,6 +1863,18 @@ export default function MarketingLab() {
                   const viralMeta =
                     VIRAL_PATTERNS.find((v) => v.id === post.viral_type) ||
                     VIRAL_PATTERNS[1];
+                  const chSpec =
+                    CHANNEL_DEFAULT_DECONSTRUCT_SPECS[post.channel] ||
+                    CHANNEL_DEFAULT_DECONSTRUCT_SPECS.youtube;
+
+                  const keywordPlacement =
+                    post.title_keyword_placement || chSpec.title_keyword_placement;
+                  const hookType = post.title_hook_type || chSpec.title_hook_type;
+                  const imageCount = post.image_count_info || chSpec.image_count_info;
+                  const charCount = post.char_count ?? chSpec.char_count;
+                  const durationOrSlides =
+                    post.content_duration_or_slides || chSpec.content_duration_or_slides;
+                  const formula = post.unique_sns_formula || chSpec.unique_sns_formula;
 
                   return (
                     <div
@@ -1687,56 +1926,48 @@ export default function MarketingLab() {
                       </div>
 
                       {/* 제목 방식 정밀 분석: 키워드 배치 & 후킹 기법 뱃지 */}
-                      {(post.title_keyword_placement || post.title_hook_type) && (
-                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                          {post.title_keyword_placement && (
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-300">
-                              <Type className="h-3.5 w-3.5" />
-                              키워드: {
-                                post.title_keyword_placement === 'front'
-                                  ? '전면 배치 (검색·주목도 극대화)'
-                                  : post.title_keyword_placement === 'middle'
-                                  ? '중간 배치 (맥락 자연 유도)'
-                                  : '후면 배치 (호기심 유발 후 반전)'
-                              }
-                            </span>
-                          )}
-                          {post.title_hook_type && (
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-1 text-xs font-semibold text-fuchsia-300">
-                              <Target className="h-3.5 w-3.5" />
-                              후킹 기법: {post.title_hook_type}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-300">
+                          <Type className="h-3.5 w-3.5" />
+                          키워드: {
+                            keywordPlacement === 'front'
+                              ? '전면 배치 (검색·주목도 극대화)'
+                              : keywordPlacement === 'middle'
+                              ? '중간 배치 (맥락 자연 유도)'
+                              : '후면 배치 (호기심 유발 후 반전)'
+                          }
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-1 text-xs font-semibold text-fuchsia-300">
+                          <Target className="h-3.5 w-3.5" />
+                          후킹 기법: {hookType}
+                        </span>
+                      </div>
 
                       {/* 콘텐츠 볼륨 스펙 뱃지 바 (이미지 장수, 공백 제외 글자수, 영상 재생시간/슬라이드) */}
-                      {(post.image_count_info || post.char_count !== undefined || post.content_duration_or_slides) && (
-                        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/70 p-2.5 text-xs">
-                          <span className="font-bold text-slate-400 mr-1 flex items-center gap-1.5">
-                            <Cpu className="h-3.5 w-3.5 text-indigo-400" />
-                            콘텐츠 볼륨 스펙:
+                      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/70 p-2.5 text-xs">
+                        <span className="font-bold text-slate-400 mr-1 flex items-center gap-1.5">
+                          <Cpu className="h-3.5 w-3.5 text-indigo-400" />
+                          콘텐츠 볼륨 스펙:
+                        </span>
+                        {imageCount && (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800 px-2.5 py-1 font-semibold text-slate-200">
+                            <ImageIcon className="h-3.5 w-3.5 text-sky-400" />
+                            {imageCount}
                           </span>
-                          {post.image_count_info && (
-                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800 px-2.5 py-1 font-semibold text-slate-200">
-                              <ImageIcon className="h-3.5 w-3.5 text-sky-400" />
-                              {post.image_count_info}
-                            </span>
-                          )}
-                          {post.char_count !== undefined && (
-                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800 px-2.5 py-1 font-semibold text-slate-200">
-                              <AlignLeft className="h-3.5 w-3.5 text-amber-400" />
-                              공백 제외 {post.char_count.toLocaleString('ko-KR')}자
-                            </span>
-                          )}
-                          {post.content_duration_or_slides && (
-                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800 px-2.5 py-1 font-semibold text-slate-200">
-                              <Clock className="h-3.5 w-3.5 text-emerald-400" />
-                              {post.content_duration_or_slides}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                        )}
+                        {charCount !== undefined && (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800 px-2.5 py-1 font-semibold text-slate-200">
+                            <AlignLeft className="h-3.5 w-3.5 text-amber-400" />
+                            공백 제외 {charCount.toLocaleString('ko-KR')}자
+                          </span>
+                        )}
+                        {durationOrSlides && (
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800 px-2.5 py-1 font-semibold text-slate-200">
+                            <Clock className="h-3.5 w-3.5 text-emerald-400" />
+                            {durationOrSlides}
+                          </span>
+                        )}
+                      </div>
 
                       {/* 후킹 카피 인용 박스 */}
                       <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
@@ -1859,7 +2090,7 @@ export default function MarketingLab() {
                       </div>
 
                       {/* [이 SNS만의 고유 성공 공식] 전용 박스 */}
-                      {post.unique_sns_formula && (
+                      {formula && (
                         <div className="mt-4 rounded-xl border border-violet-500/35 bg-gradient-to-br from-violet-950/40 via-purple-950/20 to-slate-900/60 p-4 shadow-sm">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
@@ -1867,7 +2098,7 @@ export default function MarketingLab() {
                                 ★
                               </span>
                               <span className="text-sm font-bold text-violet-200">
-                                {post.unique_sns_formula.name || post.unique_sns_formula.title}
+                                {formula.name || formula.title}
                               </span>
                             </div>
                             <span className="rounded-full border border-violet-500/40 bg-violet-900/40 px-2.5 py-0.5 text-xs font-semibold text-violet-300">
@@ -1875,13 +2106,13 @@ export default function MarketingLab() {
                             </span>
                           </div>
                           <p className="mt-2 text-sm leading-relaxed text-slate-200">
-                            {post.unique_sns_formula.core_logic || post.unique_sns_formula.strategy}
+                            {formula.core_logic || formula.strategy}
                           </p>
-                          {(post.unique_sns_formula.algorithm_factor || post.unique_sns_formula.coreMetric) && (
+                          {(formula.algorithm_factor || formula.coreMetric) && (
                             <div className="mt-2.5 flex items-start gap-1.5 text-xs text-violet-300/90 pt-2 border-t border-violet-900/40">
                               <span className="shrink-0 font-bold text-violet-300">알고리즘 반영 요소:</span>
                               <span className="text-slate-300">
-                                {post.unique_sns_formula.algorithm_factor || post.unique_sns_formula.coreMetric}
+                                {formula.algorithm_factor || formula.coreMetric}
                               </span>
                             </div>
                           )}
@@ -1999,60 +2230,71 @@ export default function MarketingLab() {
             )}
 
             {/* 최적 궁합 SNS 추천 시스템 (Cross-Match Recommender) */}
-            {activePost && activePost.recommended_targets && activePost.recommended_targets.length > 0 && (
-              <div className="mt-3.5 rounded-xl border border-sky-500/35 bg-gradient-to-r from-sky-950/40 via-indigo-950/30 to-slate-900/60 p-4 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-sky-400" />
-                    <span className="text-sm font-bold text-sky-200">
-                      최적 궁합 SNS 추천 (Cross-Match Recommender)
+            {(() => {
+              const activeRecTargets =
+                activePost?.recommended_targets && activePost.recommended_targets.length > 0
+                  ? activePost.recommended_targets
+                  : activePost
+                  ? (CHANNEL_DEFAULT_DECONSTRUCT_SPECS[activePost.channel] || CHANNEL_DEFAULT_DECONSTRUCT_SPECS.youtube).recommended_targets
+                  : [];
+
+              if (activeRecTargets.length === 0) return null;
+
+              return (
+                <div className="mt-3.5 rounded-xl border border-sky-500/35 bg-gradient-to-r from-sky-950/40 via-indigo-950/30 to-slate-900/60 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-sky-400" />
+                      <span className="text-sm font-bold text-sky-200">
+                        최적 궁합 SNS 추천 (Cross-Match Recommender)
+                      </span>
+                    </div>
+                    <span className="rounded-full bg-sky-500/20 px-2.5 py-0.5 text-xs font-semibold text-sky-300 border border-sky-500/30">
+                      [{currentChannelMeta.shortLabel}] DNA 기반 분석
                     </span>
                   </div>
-                  <span className="rounded-full bg-sky-500/20 px-2.5 py-0.5 text-xs font-semibold text-sky-300 border border-sky-500/30">
-                    [{currentChannelMeta.shortLabel}] DNA 기반 분석
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  {activePost.recommended_targets.map((rec) => {
-                    const recChannel = rec.targetChannel || rec.target_channel || 'naver_blog';
-                    const targetMeta =
-                      SNS_CHANNELS.find((c) => c.id === recChannel) || SNS_CHANNELS[0];
-                    const isCurrentlyTarget = targetChannel === recChannel;
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    {activeRecTargets.map((rec) => {
+                      const recChannel = rec.targetChannel || rec.target_channel || 'naver_blog';
+                      const targetMeta =
+                        SNS_CHANNELS.find((c) => c.id === recChannel) || SNS_CHANNELS[0];
+                      const isCurrentlyTarget = targetChannel === recChannel;
 
-                    return (
-                      <button
-                        key={recChannel}
-                        type="button"
-                        onClick={() => {
-                          setTargetChannel(recChannel);
-                          showToast(`🎯 타깃 채널을 추천 SNS [${targetMeta.shortLabel}]로 전환했습니다.`);
-                        }}
-                        className={`group text-left rounded-xl border p-3.5 transition-all ${
-                          isCurrentlyTarget
-                            ? 'border-sky-400 bg-sky-900/40 ring-1 ring-sky-400/50 shadow-md'
-                            : 'border-slate-800 bg-slate-900/80 hover:border-sky-500/50 hover:bg-slate-850'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold ${targetMeta.badgeColor}`}
-                          >
-                            {targetMeta.shortLabel} 이식 추천
-                          </span>
-                          <span className="text-xs font-bold text-sky-300 group-hover:underline">
-                            {isCurrentlyTarget ? '✓ 선택됨' : '적용하기 →'}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs font-medium leading-relaxed text-slate-200">
-                          {rec.reason}
-                        </p>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={recChannel}
+                          type="button"
+                          onClick={() => {
+                            setTargetChannel(recChannel);
+                            showToast(`🎯 타깃 채널을 추천 SNS [${targetMeta.shortLabel}]로 전환했습니다.`);
+                          }}
+                          className={`group text-left rounded-xl border p-3.5 transition-all ${
+                            isCurrentlyTarget
+                              ? 'border-sky-400 bg-sky-900/40 ring-1 ring-sky-400/50 shadow-md'
+                              : 'border-slate-800 bg-slate-900/80 hover:border-sky-500/50 hover:bg-slate-850'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold ${targetMeta.badgeColor}`}
+                            >
+                              {targetMeta.shortLabel} 이식 추천
+                            </span>
+                            <span className="text-xs font-bold text-sky-300 group-hover:underline">
+                              {isCurrentlyTarget ? '✓ 선택됨' : '적용하기 →'}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs font-medium leading-relaxed text-slate-200">
+                            {rec.reason}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* 컨트롤 박스: "어떤 채널/소재와 융합할 것인가?" */}
             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-4">
