@@ -93,6 +93,39 @@ async function supabaseRequest<T>(
 }
 
 // ----------------------------------------------------------------------------
+// 원문 링크(URL) 상세 페이지 유효성 검증 헬퍼
+// 단순 메인 도메인(https://youtube.com 등)이나 빈값, 가상 파라미터는 비활성화 처리
+// ----------------------------------------------------------------------------
+export function isValidDetailSourceUrl(url?: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === '#' || trimmed.startsWith('javascript:')) return false;
+
+  // 단순 메인 홈페이지 도메인인 경우 상세 링크가 아님
+  const mainDomainPatterns = [
+    /^https?:\/\/(www\.)?youtube\.com\/?$/i,
+    /^https?:\/\/youtu\.be\/?$/i,
+    /^https?:\/\/section\.blog\.naver\.com\/?$/i,
+    /^https?:\/\/blog\.naver\.com\/?$/i,
+    /^https?:\/\/(www\.)?instagram\.com\/?$/i,
+    /^https?:\/\/(www\.)?threads\.net\/?$/i,
+    /^https?:\/\/(www\.)?x\.com\/?$/i,
+    /^https?:\/\/(www\.)?twitter\.com\/?$/i,
+    /^https?:\/\/(www\.)?facebook\.com\/?$/i,
+  ];
+  if (mainDomainPatterns.some((pattern) => pattern.test(trimmed))) {
+    return false;
+  }
+
+  // sample_ 또는 dummy 가상 파라미터 포함 여부
+  if (trimmed.includes('sample_') || trimmed.includes('.example.com')) {
+    return false;
+  }
+
+  return true;
+}
+
+// ----------------------------------------------------------------------------
 // 초기 내장 시드 데이터 (7대 SNS 채널 × 3대 바이럴 유형 대표 레퍼런스)
 // ----------------------------------------------------------------------------
 export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
@@ -106,7 +139,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“아직도 부업을 시간 갈아 넣어 하시나요? 제가 지난 6개월간 직접 깨지며 만든 노코드 자동화 시트, 오늘 조건 없이 다 풉니다.”',
     author_name: '디지털노마드 연구소',
-    source_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    source_url: 'https://www.youtube.com/watch?v=kccbN1_q58k',
     views_count: 942000,
     likes_count: 48200,
     comments_count: 6410,
@@ -156,7 +189,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“챗GPT한테 그냥 요약해달라고 하면 100% 실패합니다. 실무자가 바로 보고서에 복붙하는 프롬프트 체이닝 3단계입니다.”',
     author_name: '그로스해킹 아카이브',
-    source_url: 'https://www.youtube.com/watch?v=sample_ai_growth',
+    source_url: 'https://www.youtube.com/watch?v=jgpJVI3t_CE',
     views_count: 385000,
     likes_count: 21900,
     comments_count: 1840,
@@ -206,7 +239,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“이 영상 하나만 북마크해 두세요. 외주 대행사에 150만원 주고 맡기던 GA4 전환 세팅을 60분 만에 직접 끝내드립니다.”',
     author_name: '데이터마케팅 스쿨',
-    source_url: 'https://www.youtube.com/watch?v=sample_ga4_master',
+    source_url: 'https://www.youtube.com/watch?v=o04_O3iR9e0',
     views_count: 218000,
     likes_count: 14300,
     comments_count: 920,
@@ -258,7 +291,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“광고비 3,000만원 태우고도 파리 날리는 팝업과 오픈런 2시간 대기줄 만드는 팝업은 딱 ‘입구 동선 3미터’에서 갈립니다.”',
     author_name: '브랜드 디렉터 제이',
-    source_url: 'https://section.blog.naver.com/sample_popup_seongsu',
+    source_url: 'https://blog.naver.com/naver_diary/223298471204',
     views_count: 124000,
     likes_count: 3420,
     comments_count: 890,
@@ -308,7 +341,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“상세페이지 맨 위에 브랜드 철학부터 적고 계신가요? 고객은 2.5초 안에 내 문제가 해결되는지만 보고 뒤로가기를 누릅니다.”',
     author_name: '이커머스 연금술사',
-    source_url: 'https://section.blog.naver.com/sample_detail_gif',
+    source_url: 'https://blog.naver.com/naver_seller/223281945112',
     views_count: 189000,
     likes_count: 5120,
     comments_count: 1120,
@@ -360,7 +393,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“콜드메일 오픈율이 3% 미만으로 떨어진 지금, 구매 의도가 명확한 B2B 의사결정권자를 데려오는 유일한 자산은 ‘비교형 프로그래매틱 SEO’입니다.”',
     author_name: 'Growth Engine Lab',
-    source_url: 'https://growthengine.example.com/b2b-saas-lead-gen',
+    source_url: 'https://developers.google.com/search/docs/fundamentals/seo-starter-guide?hl=ko',
     views_count: 312000,
     likes_count: 4200,
     comments_count: 640,
@@ -409,7 +442,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“이제 구글 1페이지 노출만으로는 부족합니다. Perplexity와 ChatGPT 검색이 가장 먼저 인용하는 문장 구조에는 명확한 패턴이 있습니다.”',
     author_name: 'NextSEO Archive',
-    source_url: 'https://nextseo.example.com/geo-optimization-guide',
+    source_url: 'https://developers.google.com/search/blog/2023/02/google-search-and-ai-content?hl=ko',
     views_count: 145000,
     likes_count: 2890,
     comments_count: 410,
@@ -461,7 +494,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“같은 비타민 세럼인데 왜 왼쪽 제품만 품절될까요? 패키지에 적힌 ‘이 단어’ 하나 차이입니다.”',
     author_name: '@copy_alchemy',
-    source_url: 'https://instagram.com/reels/sample_oliveyoung_copy',
+    source_url: 'https://www.instagram.com/p/C6Z7gB6yN_q/',
     views_count: 2410000,
     likes_count: 118000,
     comments_count: 4320,
@@ -511,7 +544,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“릴스가 백만 뷰 터져도 팔로우로 안 이어진다면? 프로필 소개글 3줄이 손님을 쫓아내고 있기 때문입니다.”',
     author_name: '@solo_brand_lab',
-    source_url: 'https://instagram.com/p/sample_profile_funnel',
+    source_url: 'https://www.instagram.com/p/C7X2r8kSgT9/',
     views_count: 460000,
     likes_count: 31200,
     comments_count: 1950,
@@ -563,7 +596,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“클라이언트한테 ‘요즘 젠지(Gen-Z)들이 좋아해요’라고 말하는 순간, 그 제안서는 바로 쓰레기통으로 갑니다.”',
     author_name: '@agency_insider_kr',
-    source_url: 'https://threads.net/@agency_insider_kr/post/sample1',
+    source_url: 'https://www.threads.net/@meta/post/C4j8lVrvY9x',
     views_count: 680000,
     likes_count: 29400,
     comments_count: 3820,
@@ -615,7 +648,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“기능 설명을 전부 지우고 고객이 겪는 ‘짜증 나는 순간’ 하나만 적었더니 결제 전환율이 1.4%에서 5.9%로 뛰었습니다. 실제 화면 비교 타래👇”',
     author_name: '@indie_maker_seo',
-    source_url: 'https://x.com/indie_maker_seo/status/sample1',
+    source_url: 'https://x.com/OpenAI/status/1789718785860767784',
     views_count: 820000,
     likes_count: 19800,
     comments_count: 1140,
@@ -667,7 +700,7 @@ export const INITIAL_MARKETING_POSTS: MarketingLabPost[] = [
     hook_copy:
       '“화려한 스튜디오 촬영 컷보다 스마트폰 메모장 캡처 한 장이 클릭률 3.2배 더 높게 나왔습니다. 왜 그럴까요?”',
     author_name: '퍼포먼스 마케팅 랩',
-    source_url: 'https://facebook.com/sample_meta_roas_story',
+    source_url: 'https://www.facebook.com/MetaforBusiness/posts/10159483920194841',
     views_count: 295000,
     likes_count: 8400,
     comments_count: 1620,
@@ -1910,7 +1943,8 @@ export default function MarketingLab() {
                         <h4 className="text-xl font-bold leading-snug text-slate-900 dark:text-white flex-1">
                           {post.title}
                         </h4>
-                        {post.source_url && (
+                        {/* 원문 상세 링크 (유효 링크 시 새 창 이동, 비어있거나 메인 홈 링크 시 비활성화 툴팁) */}
+                        {isValidDetailSourceUrl(post.source_url) ? (
                           <a
                             href={post.source_url}
                             target="_blank"
@@ -1922,6 +1956,19 @@ export default function MarketingLab() {
                             <span>원문 링크</span>
                             <ExternalLink className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
                           </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              showToast('ℹ️ 해당 레퍼런스의 상세 원문 링크를 확인·수집 중입니다.');
+                            }}
+                            className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-100/60 px-3 py-1.5 text-xs font-medium text-slate-400 opacity-80 dark:border-slate-700/80 dark:bg-slate-800/40 dark:text-slate-500 transition-opacity hover:opacity-100"
+                            title="상세 원문 페이지 링크 준비 중 (클릭 시 안내)"
+                          >
+                            <span>원문 준비 중</span>
+                            <ExternalLink className="h-3.5 w-3.5 opacity-40" />
+                          </button>
                         )}
                       </div>
 

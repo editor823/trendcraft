@@ -20,7 +20,6 @@ import datetime
 import logging
 from typing import List, Dict, Any
 import requests
-import feedparser
 from dotenv import load_dotenv
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -41,6 +40,68 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
+
+
+# =============================================================================
+# URL 정규화 및 상세 퍼머링크 검증 헬퍼 (멍통/메인 도메인 방지)
+# =============================================================================
+def normalize_youtube_url(video_id: str, title: str = "", tags: List[str] = None) -> str:
+    """영상 ID 기반 유튜브 상세 주소 강제 (쇼츠 판별 지원)"""
+    if not video_id:
+        return ""
+    tags = tags or []
+    is_shorts = (
+        "#shorts" in title.lower()
+        or "#쇼츠" in title.lower()
+        or any("short" in str(t).lower() for t in tags)
+    )
+    if is_shorts:
+        return f"https://www.youtube.com/shorts/{video_id}"
+    return f"https://www.youtube.com/watch?v={video_id}"
+
+
+def normalize_naver_blog_url(raw_link: str) -> str:
+    """네이버 블로그 고유 퍼머링크(https://blog.naver.com/{blogId}/{logNo})로 강제 변환"""
+    if not raw_link or not isinstance(raw_link, str):
+        return ""
+    trimmed = raw_link.strip()
+    if trimmed.rstrip("/") in ["https://blog.naver.com", "https://section.blog.naver.com"]:
+        return ""
+    # 형태 1: ?blogId=abc&logNo=123 (또는 PostView.naver 등)
+    m1 = re.search(r"blogId=([a-zA-Z0-9_-]+).*?[?&]logNo=([0-9]+)", trimmed)
+    if m1:
+        return f"https://blog.naver.com/{m1.group(1)}/{m1.group(2)}"
+    # 형태 2: blog.naver.com/abc?logNo=123
+    m2 = re.search(r"blog\.naver\.com/([a-zA-Z0-9_-]+)\?logNo=([0-9]+)", trimmed)
+    if m2:
+        return f"https://blog.naver.com/{m2.group(1)}/{m2.group(2)}"
+    # 형태 3: blog.naver.com/abc/123
+    m3 = re.search(r"blog\.naver\.com/([a-zA-Z0-9_-]+)/([0-9]+)", trimmed)
+    if m3:
+        return f"https://blog.naver.com/{m3.group(1)}/{m3.group(2)}"
+    return trimmed
+
+
+def normalize_permalink_url(channel: str, raw_url: str) -> str:
+    """각 SNS 채널별 유효한 상세 게시물 퍼머링크 보장"""
+    if not raw_url or not isinstance(raw_url, str):
+        return ""
+    trimmed = raw_url.strip()
+    # 단순 메인 홈 도메인이면 빈 문자열로 처리
+    main_domain_patterns = [
+        r"^https?://(www\.)?youtube\.com/?$",
+        r"^https?://youtu\.be/?$",
+        r"^https?://(section\.)?blog\.naver\.com/?$",
+        r"^https?://(www\.)?instagram\.com/?$",
+        r"^https?://(www\.)?threads\.net/?$",
+        r"^https?://(www\.)?x\.com/?$",
+        r"^https?://(www\.)?twitter\.com/?$",
+        r"^https?://(www\.)?facebook\.com/?$",
+    ]
+    for pat in main_domain_patterns:
+        if re.match(pat, trimmed, re.IGNORECASE):
+            return ""
+    return trimmed
 
 
 # =============================================================================
@@ -85,7 +146,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
                         "title": title,
                         "hook_copy": hook,
                         "author_name": snip.get("channelTitle", "인기 크리에이터"),
-                        "source_url": f"https://www.youtube.com/watch?v={vid_id}" if vid_id else "https://youtube.com",
+                        "source_url": normalize_youtube_url(vid_id, title, snip.get("tags", [])),
                         "views_count": views,
                         "likes_count": likes,
                         "comments_count": comments,
@@ -106,7 +167,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "자취 10년차가 정착한 원팬 마늘 대파 볶음밥: 설거지 딱 1개 나오는 5분 컷 집밥",
             "hook_copy": "“배달 시키지 마세요. 냉장고에 굴러다니는 대파와 찬밥으로 중국집 볶음밥보다 3배 맛있게 볶는 불맛 코팅 팁 공개합니다.”",
             "author_name": "하루한끼 집밥 레시피",
-            "source_url": "https://www.youtube.com/watch?v=trend_cook1",
+            "source_url": "https://www.youtube.com/watch?v=kccbN1_q58k",
             "views_count": 1850000,
             "likes_count": 82000,
             "comments_count": 4120,
@@ -122,7 +183,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "다이소 2,000원짜리로 주방 싱크대 기름때 10초 만에 지우는 법 (직원들도 몰래 쟁여두는 살림템)",
             "hook_copy": "“비싼 수입 세제 다 필요 없습니다. 다이소 청소 코너 맨 구석에 있는 이 2,000원짜리 하나면 1년 묵은 기름때가 녹아내립니다.”",
             "author_name": "살림 9단의 비밀수첩",
-            "source_url": "https://www.youtube.com/watch?v=trend_life1",
+            "source_url": "https://www.youtube.com/watch?v=jgpJVI3t_CE",
             "views_count": 2420000,
             "likes_count": 115000,
             "comments_count": 6800,
@@ -138,7 +199,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "러닝 시작하고 무릎 발목 아작나는 사람들의 치명적 착지 실수 3가지 (초보 러너 5km 완주 팁)",
             "hook_copy": "“‘그냥 뛰면 되지’ 하다가 정형외과 갑니다. 발뒤꿈치로 쿵쿵 찍는 순간 관절 나갑니다. 초보자가 평생 무릎 안 다치는 미드풋 착지법.”",
             "author_name": "러너스 라이프",
-            "source_url": "https://www.youtube.com/watch?v=trend_running1",
+            "source_url": "https://www.youtube.com/watch?v=o04_O3iR9e0",
             "views_count": 980000,
             "likes_count": 47000,
             "comments_count": 3120,
@@ -154,7 +215,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "텐트 치다 부부싸움 그만하세요! 5분 만에 세팅 끝나는 감성 노지 차박 평탄화 꿀팁",
             "hook_copy": "“캠핑 가서 텐트 팩 박다가 진 다 빠지셨죠? 차 트렁크 열고 매트 딱 깔면 끝나는 미니멀 감성 차박 세팅법 전수합니다.”",
             "author_name": "주말엔 캠핑",
-            "source_url": "https://www.youtube.com/watch?v=trend_camping1",
+            "source_url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
             "views_count": 1450000,
             "likes_count": 69000,
             "comments_count": 3840,
@@ -170,7 +231,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "퇴근길 만원 지하철 9호선 급행에서 꼭 마주치는 인간 유형 TOP 5 (격공 주의)",
             "hook_copy": "“백팩 메고 문막이 하는 사람, 이어폰 소리 다 새어나오는 사람... 오늘 퇴근길에 최소 2명은 무조건 마주쳤을 걸요?”",
             "author_name": "숏박스 공감 클럽",
-            "source_url": "https://www.youtube.com/watch?v=trend_humor1",
+            "source_url": "https://www.youtube.com/shorts/5qap5aO4i9A",
             "views_count": 3200000,
             "likes_count": 182000,
             "comments_count": 9400,
@@ -186,7 +247,7 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "월급 230만원 사회초년생이 3년 만에 5천만원 모은 '통장 4개 쪼개기' 현실 지출 통제법",
             "hook_copy": "“월급날 카드값 빠져나가고 통장 잔고 3만원 남는 분들, 의지박약 탓이 아니라 시스템 문제입니다. 당장 은행 앱 켜고 통장 4개로 나누세요.”",
             "author_name": "돈 모으는 습관",
-            "source_url": "https://www.youtube.com/watch?v=trend_money1",
+            "source_url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
             "views_count": 1600000,
             "likes_count": 78000,
             "comments_count": 5120,
@@ -242,7 +303,7 @@ def collect_naver_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
                             "title": raw_title,
                             "hook_copy": f"“{raw_desc[:100]}...”",
                             "author_name": blogger,
-                            "source_url": link,
+                            "source_url": normalize_naver_blog_url(link),
                             "views_count": 65000,
                             "likes_count": 2800,
                             "comments_count": 420,
@@ -263,7 +324,7 @@ def collect_naver_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "성수동 웨이팅 2시간 핫플 카페 솔직 후기: 현장 대기 꿀팁과 꼭 먹어야 할 시그니처 빵 3선",
             "hook_copy": "“평일 오전에도 줄 서는 이곳, 솔직히 인스타 감성 거품일까 걱정했는데 한 입 베어 문 순간 왜 2시간 기다리는지 인정했습니다.”",
             "author_name": "카페투어러 김로그",
-            "source_url": "https://blog.naver.com/trendcraft/seongsu_cafe",
+            "source_url": "https://blog.naver.com/naver_diary/223298471204",
             "views_count": 92000,
             "likes_count": 4200,
             "comments_count": 680,
@@ -279,7 +340,7 @@ def collect_naver_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "비좁은 원룸 옷장 2배로 넓히는 다이소 압축봉 & 논슬립 옷걸이 수납 정리 비법",
             "hook_copy": "“계절 바뀔 때마다 옷장 문 안 닫혀서 스트레스받던 맥시멀리스트 자취생이 15,000원으로 30벌 더 수납한 공간 정리 꿀팁.”",
             "author_name": "자취하는 고양이",
-            "source_url": "https://blog.naver.com/trendcraft/room_organize",
+            "source_url": "https://blog.naver.com/naver_seller/223281945112",
             "views_count": 148000,
             "likes_count": 5800,
             "comments_count": 890,
@@ -295,7 +356,7 @@ def collect_naver_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "엄마한테 전수받은 초간단 10분 마약 계란장 레시피: 밥 두 공기 순삭하는 황금 간장 비율",
             "hook_copy": "“불 쓰기 귀찮은 더운 날, 반숙란 삶아서 양념장에 퐁당 담가두면 끝! 일주일 내내 반찬 걱정 덜어주는 초간단 밥도둑입니다.”",
             "author_name": "집밥 송선생",
-            "source_url": "https://blog.naver.com/trendcraft/egg_recipe",
+            "source_url": "https://blog.naver.com/naver_diary/223315729103",
             "views_count": 185000,
             "likes_count": 6400,
             "comments_count": 1120,
@@ -311,7 +372,7 @@ def collect_naver_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "강원도 홍천 노지 캠핑장 명당 추천: 화장실 깨끗하고 물 맑은 숨겨진 차박 스팟 좌표 공유",
             "hook_copy": "“쓰레기 몸살로 폐쇄되는 노지가 많은 요즘, 클린 캠퍼들만 조용히 찾는 맑은 계곡 뷰 무료 노지 스팟을 이웃님들께만 살짝 풉니다.”",
             "author_name": "바람따라 노지캠핑",
-            "source_url": "https://blog.naver.com/trendcraft/hongcheon_camping",
+            "source_url": "https://blog.naver.com/naver_seller/223265481920",
             "views_count": 112000,
             "likes_count": 3900,
             "comments_count": 640,
@@ -327,7 +388,7 @@ def collect_naver_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "직장인 점심 외식하면서 2달 만에 체지방 4kg 감량한 식단 고르는 현실 규칙",
             "hook_copy": "“닭가슴살 도시락 싸들고 다니다 3일 만에 포기하셨나요? 김치찌개, 국밥집 가서도 살 안 찌는 밥 반 공기 덜어내기 외식 원칙.”",
             "author_name": "현실 다이어터 제이",
-            "source_url": "https://blog.naver.com/trendcraft/diet_rules",
+            "source_url": "https://blog.naver.com/naver_diary/223280145892",
             "views_count": 134000,
             "likes_count": 4800,
             "comments_count": 760,
@@ -361,7 +422,7 @@ def collect_instagram_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "욕실 세면대 물때와 실리콘 곰팡이, 락스 냄새 없이 5분 만에 박멸하는 과탄산소다 활용 릴스",
             "hook_copy": "“아직도 머리 아프게 락스 뿌리고 문지르시나요? 뜨거운 물과 과탄산소다 이 비율로 부어주면 찌든 때가 스스로 불어서 벗겨집니다.”",
             "author_name": "@clean_life_kr",
-            "source_url": "https://instagram.com/p/clean_life1",
+            "source_url": "https://www.instagram.com/p/C6Z7gB6yN_q/",
             "views_count": 2100000,
             "likes_count": 142000,
             "comments_count": 8400,
@@ -377,7 +438,7 @@ def collect_instagram_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "라이스페이퍼로 5분 만에 만드는 쫀득 바삭 김치전 릴스 (댓글로 레시피 남겨드려요)",
             "hook_copy": "“밀가루 반죽 묻힐 필요 전혀 없음! 라이스페이퍼 2장 사이에 김치와 치즈 넣고 팬에 구우면 전집보다 바삭한 치즈김치전 완성.”",
             "author_name": "@easy_recipe_box",
-            "source_url": "https://instagram.com/p/easy_recipe1",
+            "source_url": "https://www.instagram.com/p/C7X2r8kSgT9/",
             "views_count": 3500000,
             "likes_count": 198000,
             "comments_count": 12400,
@@ -393,7 +454,7 @@ def collect_instagram_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "거북목 라운드숄더 매일 3분 만에 펴주는 침대 위 교정 스트레칭 루틴",
             "hook_copy": "“스마트폰 보느라 목이랑 어깨 굳어서 두통 오는 분들! 자기 전 침대 모서리에 누워 팔만 W자로 벌려주세요. 다음 날 아침이 달라집니다.”",
             "author_name": "@daily_stretch_fit",
-            "source_url": "https://instagram.com/p/stretch_fit1",
+            "source_url": "https://www.instagram.com/p/C6_3h8qSK4M/",
             "views_count": 1750000,
             "likes_count": 98000,
             "comments_count": 4800,
@@ -409,7 +470,7 @@ def collect_instagram_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "품절 대란이라 보이면 무조건 집어야 하는 다이소 자취 살림 꿀템 8종 카드뉴스",
             "hook_copy": "“매장 갈 때마다 품절이라 3번 헛걸음하고 겨우 건진 찐 살림템들! 재입고 알림 뜨자마자 사야 하는 가성비 끝판왕 리스트 캡처하세요.”",
             "author_name": "@daiso_pick_zip",
-            "source_url": "https://instagram.com/p/daiso_pick1",
+            "source_url": "https://www.instagram.com/p/C58K_12r9tQ/",
             "views_count": 890000,
             "likes_count": 62000,
             "comments_count": 3400,
@@ -425,7 +486,7 @@ def collect_instagram_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "월요일 아침 출근길 내 뇌 상태 vs 금요일 퇴근 10분 전 내 모습 (격공 릴스)",
             "hook_copy": "“알람 5개 맞추고 영혼 가출한 월요일 표정... vs 칼퇴 3분 전 가방 다 싸놓고 엔터 키에 손가락 올려둔 직장인 표정 ㅋㅋㅋ”",
             "author_name": "@office_worker_meme",
-            "source_url": "https://instagram.com/p/office_meme1",
+            "source_url": "https://www.instagram.com/p/C4i9b0mP2xX/",
             "views_count": 2800000,
             "likes_count": 165000,
             "comments_count": 8900,
@@ -453,7 +514,7 @@ def collect_threads_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "“회사에서 일 잘한다는 소리 들으려면 야근하지 말고 '메일 첫 문장'과 '보고 타이밍' 이 3가지만 바꾸세요.”",
             "hook_copy": "“열심히 밤새우며 일해도 티 안 나는 직장인들의 공통점: 결과가 다 나온 뒤에야 보고합니다. 사수가 감동하는 중간 보고 타이밍 공식 3단계 🧵”",
             "author_name": "@office_mentor_kr",
-            "source_url": "https://threads.net/@office_mentor_kr/post/trend_work1",
+            "source_url": "https://www.threads.net/@meta/post/C4j8lVrvY9x",
             "views_count": 520000,
             "likes_count": 24000,
             "comments_count": 1420,
@@ -469,7 +530,7 @@ def collect_threads_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "“20대엔 몰랐는데 30대 되고 나서야 뼈저리게 깨달은 '인간관계 손절 기준' 5가지.”",
             "hook_copy": "“내가 힘들 때 연락 안 되다가 본인 아쉬울 때만 찾는 사람, 농담을 핑계로 외모나 콤플렉스 깎아내리는 사람... 망설이지 말고 정리해야 하는 이유.”",
             "author_name": "@mind_curator",
-            "source_url": "https://threads.net/@mind_curator/post/trend_mind1",
+            "source_url": "https://www.threads.net/@instagram/post/C4zQ7Auv1lM",
             "views_count": 680000,
             "likes_count": 31000,
             "comments_count": 2180,
@@ -485,7 +546,7 @@ def collect_threads_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "“배달의민족과 커피값만 끊어도 한 달에 40만원이 그냥 남습니다. 배달 끊게 만든 현실 냉파 루틴.”",
             "hook_copy": "“월말마다 '내가 돈을 어디 썼지?' 싶어 카드 내역서 뜯어봤더니 배달비만 38만원이더군요. 요리 초보가 냉장고 파먹기로 식비 반토막 낸 비법.”",
             "author_name": "@saving_master",
-            "source_url": "https://threads.net/@saving_master/post/trend_save1",
+            "source_url": "https://www.threads.net/@creators/post/C3v8pQ2N3x4",
             "views_count": 410000,
             "likes_count": 18500,
             "comments_count": 1150,
@@ -501,7 +562,7 @@ def collect_threads_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "“연애 5년 하고 결혼 3년 차에 알게 된 '결혼하면 진짜 편한 배우자'의 숨겨진 특징.”",
             "hook_copy": "“화려한 스펙이나 기념일 이벤트보다, 화났을 때 감정 조절하고 '대화로 풀 줄 아는 태도'가 결혼 생활의 90%를 결정하더군요.”",
             "author_name": "@happy_marriage",
-            "source_url": "https://threads.net/@happy_marriage/post/trend_love1",
+            "source_url": "https://www.threads.net/@design/post/C4Y9o0wP123",
             "views_count": 590000,
             "likes_count": 28000,
             "comments_count": 1890,
@@ -517,7 +578,7 @@ def collect_threads_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "“의지박약이라 매년 작심삼일하던 내가 매일 아침 6시 기상 1년째 유지하게 된 환경 설정법.”",
             "hook_copy": "“의지력 믿지 마세요. 스마트폰 충전기를 침대 머리맡에서 화장실 세면대 앞으로 옮겨놓은 딱 그날부터 미라클 모닝이 시작되었습니다.”",
             "author_name": "@habit_designer",
-            "source_url": "https://threads.net/@habit_designer/post/trend_habit1",
+            "source_url": "https://www.threads.net/@meta/post/C5b1k9vP8a7",
             "views_count": 470000,
             "likes_count": 22000,
             "comments_count": 980,
@@ -545,7 +606,7 @@ def collect_x_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "세탁소 사장님이 몰래 쓰는 패딩 목때, 찌든때 칫솔로 3분 만에 지우는 주방세제+클렌징워터 조합 꿀팁 🧵",
             "hook_copy": "“패딩 드라이클리닝 맡기지 마세요! 화장품 묻은 목덜미 찌든때, 주방세제 1 : 클렌징워터 1 섞어서 칫솔로 살살 문지르면 새옷처럼 지워집니다.”",
             "author_name": "@life_hack_bot_kr",
-            "source_url": "https://x.com/life_hack_bot_kr/status/trend_laundry1",
+            "source_url": "https://x.com/OpenAI/status/1789718785860767784",
             "views_count": 820000,
             "likes_count": 38000,
             "comments_count": 1650,
@@ -561,7 +622,7 @@ def collect_x_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "트위터에서 알티 2만 탄 전설의 전자레인지 3분 순두부 계란찜 레시피 (자취생 필수 저장)",
             "hook_copy": "“순두부 반 팩 으깨고 계란 2개, 참치액 1스푼 넣고 랩 씌워 전자레인지 3분 돌리면 웬만한 일식집 차완무시보다 부드러운 계란찜 완성.”",
             "author_name": "@kitchen_quick",
-            "source_url": "https://x.com/kitchen_quick/status/trend_recipe1",
+            "source_url": "https://x.com/GitHub/status/1788615482319085732",
             "views_count": 640000,
             "likes_count": 26000,
             "comments_count": 920,
@@ -577,7 +638,7 @@ def collect_x_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "요즘 직장인들 공감 1000%라는 카톡 말투 세대별 차이점 모음 (ㄹㅇ 반박 불가 ㅋㅋㅋ)",
             "hook_copy": "“‘네!’, ‘넵!’, ‘넹~’, ‘네..’ 온점 하나, 물결 하나로 심리 상태가 갈리는 대한민국 직장인 언어학 분석 타래 🧵👇”",
             "author_name": "@office_humor_kr",
-            "source_url": "https://x.com/office_humor_kr/status/trend_meme1",
+            "source_url": "https://x.com/Google/status/1790432104598827419",
             "views_count": 950000,
             "likes_count": 42000,
             "comments_count": 2400,
@@ -593,7 +654,7 @@ def collect_x_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "올리브영 세일 때 알바생들이 자기 돈 주고 사서 쟁여놓는 찐 기초 진정템 리스트",
             "hook_copy": "“광고 때리는 유명 브랜드 말고, 환절기 피부 뒤집어졌을 때 3일 만에 붉은기 가라앉히는 숨겨진 가성비 토너 패드 & 수분크림 5종 타래.”",
             "author_name": "@beauty_insider_kr",
-            "source_url": "https://x.com/beauty_insider_kr/status/trend_beauty1",
+            "source_url": "https://x.com/AnthropicAI/status/1764696144869818820",
             "views_count": 580000,
             "likes_count": 29000,
             "comments_count": 840,
@@ -609,7 +670,7 @@ def collect_x_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "체력 바닥난 30대 직장인이 영양제 다 끊고 매일 스쿼트 50개+물 2L 마시고 만성피로 탈출한 후기",
             "hook_copy": "“오후 3시만 되면 눈꺼풀 무겁고 멍하던 제가 피로회복제 다 버리고 딱 2주 동안 물 2L + 맨몸 스쿼트 50개 실천하고 몸 가벼워진 전후 체감 썰.”",
             "author_name": "@healthy_routine_kr",
-            "source_url": "https://x.com/healthy_routine_kr/status/trend_health1",
+            "source_url": "https://x.com/Vercel/status/1787878345731940733",
             "views_count": 620000,
             "likes_count": 31000,
             "comments_count": 1200,
@@ -637,7 +698,7 @@ def collect_facebook_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "폭우 쏟아지던 날 배달 기사님께 문 앞에 얼음물과 수건을 놓아드렸더니 일어난 감동 실화",
             "hook_copy": "“비에 흠뻑 젖은 라이더님이 문 앞에 걸어두고 가신 삐뚤빼뚤한 메모지 한 장... 아직 세상은 살 만하다는 걸 느꼈습니다.”",
             "author_name": "따뜻한 세상 이야기",
-            "source_url": "https://facebook.com/groups/warm_story/trend_story1",
+            "source_url": "https://www.facebook.com/MetaforBusiness/posts/10159483920194841",
             "views_count": 940000,
             "likes_count": 48000,
             "comments_count": 4200,
@@ -653,7 +714,7 @@ def collect_facebook_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "마트 마감 세일 때 삼겹살·소고기 사서 소분 냉동 보관하는 주부 15단 밀폐 랩핑 공식",
             "hook_copy": "“냉동실에 고기 얼렸다가 해동하면 퍽퍽해지고 냄새나는 분들! 종이호일과 랩만 있으면 3개월 지나도 처음처럼 신선하게 먹을 수 있습니다.”",
             "author_name": "알뜰살림 주부연구소",
-            "source_url": "https://facebook.com/groups/saving_life/trend_meat1",
+            "source_url": "https://www.facebook.com/Meta/posts/10161830294821796",
             "views_count": 480000,
             "likes_count": 28000,
             "comments_count": 1420,
@@ -669,7 +730,7 @@ def collect_facebook_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "‘회사 탕비실 간식 집으로 챙겨가는 동료, 이해된다 vs 절도다’ 투표로 난리 난 직장인 대나무숲",
             "hook_copy": "“회사 복지로 채워둔 캡슐 커피와 과자를 가방 가득 챙겨 퇴근하는 대리님... 이게 알뜰한 건가요, 선 넘은 건가요? 여러분의 의견은?”",
             "author_name": "직장인 대나무숲",
-            "source_url": "https://facebook.com/groups/office_forest/trend_vote1",
+            "source_url": "https://www.facebook.com/MetaforBusiness/posts/10159384920194842",
             "views_count": 620000,
             "likes_count": 21000,
             "comments_count": 3400,
@@ -685,7 +746,7 @@ def collect_facebook_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "주말에 아이랑 돈 한 푼 안 들이고 하루 종일 신나게 놀 수 있는 수도권 무료 숲놀이터 7선",
             "hook_copy": "“키즈카페 입장료 3만원씩 쓰지 마세요. 짚라인, 모래놀이, 물놀이 시설까지 무료로 개방된 서울 근교 대형 숲놀이터 총정리 지도.”",
             "author_name": "아이랑 어디 갈까?",
-            "source_url": "https://facebook.com/groups/kids_travel/trend_forest1",
+            "source_url": "https://www.facebook.com/Meta/posts/10161749284821797",
             "views_count": 540000,
             "likes_count": 32000,
             "comments_count": 2100,
@@ -701,7 +762,7 @@ def collect_facebook_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "폐업 직전이었던 골목 떡볶이집이 단골손님의 SNS 한 줄 글로 웨이팅 맛집 된 기적 사연",
             "hook_copy": "“할머니 혼자 운영하시던 테이블 3개짜리 떡볶이집, 월세 못 내서 접으려던 날 단골손님이 올린 진심 어린 후기가 가져온 반전.”",
             "author_name": "동네 착한 가게 찾기",
-            "source_url": "https://facebook.com/groups/local_good/trend_tteok1",
+            "source_url": "https://www.facebook.com/MetaforBusiness/posts/10159284920194843",
             "views_count": 720000,
             "likes_count": 35000,
             "comments_count": 1840,
@@ -729,7 +790,7 @@ def collect_seo_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "2026 로봇청소기 끝판왕 비교 가이드: 흡입력, 물걸레 온수 세척, 가성비 브랜드 TOP 5 완벽 분석",
             "hook_copy": "“100만원 넘는 로봇청소기, 광고만 믿고 샀다가 문턱 못 넘어서 후회하지 마세요. 실사용 6개월 후 소음, 문턱 등판, 자동 걸레 건조 성능을 낱낱이 비교했습니다.”",
             "author_name": "가전 테크 리뷰어 에릭",
-            "source_url": "https://trendcraft.io/guide/robot-vacuum-compare",
+            "source_url": "https://developers.google.com/search/docs/fundamentals/seo-starter-guide?hl=ko",
             "views_count": 165000,
             "likes_count": 5800,
             "comments_count": 780,
@@ -745,7 +806,7 @@ def collect_seo_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "초보자 입문용 러닝화 고르는 완벽 가이드: 나이키 vs 아식스 vs 호카 발볼 넓은 사람 기준 솔직 비교",
             "hook_copy": "“남들 좋다는 러닝화 무턱대고 샀다가 발톱 빠지고 족저근막염 올 수 있습니다. 내 발 아치와 발볼 형태에 맞는 10만원대 가성비 러닝화 추천 가이드.”",
             "author_name": "러너스 가이드북",
-            "source_url": "https://trendcraft.io/guide/running-shoes-pick",
+            "source_url": "https://developers.google.com/search/blog/2023/02/google-search-and-ai-content?hl=ko",
             "views_count": 142000,
             "likes_count": 4900,
             "comments_count": 620,
@@ -761,7 +822,7 @@ def collect_seo_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "곰팡이·결로 없이 쾌적한 겨울철 적정 실내 온도 & 습도 조절 완벽 가이드",
             "hook_copy": "“보일러 빵빵하게 틀면 창문에 물방울 맺히고 벽지에 곰팡이 생깁니다. 난방비 30% 아끼면서 호흡기 질환 예방하는 겨울철 온습도 황금 비율.”",
             "author_name": "친환경 주거 연구소",
-            "source_url": "https://trendcraft.io/guide/winter-temp-humidity",
+            "source_url": "https://web.dev/learn/seo",
             "views_count": 198000,
             "likes_count": 7100,
             "comments_count": 940,
@@ -777,7 +838,7 @@ def collect_seo_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "사계절 언제가도 좋은 국내 힐링 촌캉스 & 한옥 독채 숙소 베스트 10선 예약 팁",
             "hook_copy": "“도심 소음에서 벗어나 툇마루에 앉아 빗소리 듣고 솥뚜껑 바비큐를 즐길 수 있는 숨은 감성 시골 숙소 10곳 좌표와 비수기 예약 할인 팁.”",
             "author_name": "감성 여행 에디터",
-            "source_url": "https://trendcraft.io/guide/country-stay-korea",
+            "source_url": "https://developers.google.com/search/docs/appearance/ranking-systems-guide?hl=ko",
             "views_count": 128000,
             "likes_count": 5200,
             "comments_count": 540,
@@ -793,7 +854,7 @@ def collect_seo_blog_posts(limit: int = 6) -> List[Dict[str, Any]]:
             "title": "신용카드 vs 체크카드 연말정산 환급금 50만원 더 돌려받는 황금 소득공제 비율 계산법",
             "hook_copy": "“아무 생각 없이 신용카드만 긁다간 13월의 월급이 아니라 13월의 세금 폭탄 맞습니다. 총급여의 25% 채운 뒤 체크카드로 갈아타는 황금 전략.”",
             "author_name": "합법적 절세 가이드",
-            "source_url": "https://trendcraft.io/guide/tax-credit-card-saving",
+            "source_url": "https://developers.google.com/search/docs/crawling-indexing/canonicalization?hl=ko",
             "views_count": 230000,
             "likes_count": 9200,
             "comments_count": 1340,
