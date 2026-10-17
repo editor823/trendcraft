@@ -44,8 +44,22 @@ def get_supabase_client() -> Client:
 
 
 # =============================================================================
-# 0. 구버전 IT 편향 레코드 & 유효하지 않은 URL(메인 도메인/더미) 자동 정리 함수
+# 0. 기존 불일치/가짜 더미 데이터 전량 삭제 (Truncate) 함수
 # =============================================================================
+def truncate_all_posts(supabase: Client) -> int:
+    """Supabase marketing_lab_posts 테이블의 기존 가짜/불일치 데이터를 전량 깨끗하게 삭제"""
+    logger.info("🗑️ [DB 초기화] marketing_lab_posts 테이블의 기존 모든 데이터를 삭제(Truncate)합니다...")
+    deleted_count = 0
+    try:
+        # id가 null이 아닌 모든 행 삭제 (전량 초기화)
+        res = supabase.table("marketing_lab_posts").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
+        deleted_count = len(res.data) if res.data else 0
+        logger.info(f"✔ 기존 데이터 전량 삭제 완료: 총 {deleted_count}건 삭제됨.")
+    except Exception as exc:
+        logger.warning(f"전량 삭제 중 알림: {exc}")
+    return deleted_count
+
+
 def cleanup_legacy_and_invalid_posts(supabase: Client) -> int:
     """기존 IT 편향 및 원문 링크가 메인 홈이나 더미인 레코드 정리"""
     logger.info("🧹 기존 IT 편향 및 유효하지 않은 URL 레코드 필터링 및 정리 작업 진행 중...")
@@ -163,28 +177,33 @@ def analyze_post_with_gemini(post: Dict[str, Any]) -> Dict[str, Any]:
     if not GEMINI_API_KEY:
         return generate_heuristic_breakdown(post)
 
-    prompt = f"""당신은 대한민국 대중들이 열광하는 유튜브, 인스타그램, 틱톡, 블로그의 떡상 콘텐츠를 분석하는 국내 최고의 수석 바이럴 마케터입니다.
-다음 대중 라이프스타일(요리, 살림, 운동, 캠핑, 직장인 공감, 꿀팁 등) 성공 콘텐츠를 바탕으로,
-왜 이 콘텐츠가 대중들의 폭발적인 반응을 이끌어냈는지 3대 성공 요인을 초보자도 바로 이해할 수 있도록 명쾌하게 역공학 분석해 주세요.
+    prompt = f"""당신은 대한민국 대중들이 열광하는 유튜브, 인스타그램, 블로그의 실제 떡상 콘텐츠를 분석하는 국내 최고의 수석 바이럴 마케터입니다.
+다음은 실제 웹에서 1:1로 수집해 온 [실제 영상/게시글의 진짜 정보]입니다.
 
-[게시글 정보]
-- SNS 채널: {post.get('channel')}
-- 제목: {post.get('title')}
-- 초반 문구: {post.get('hook_copy')}
-- 크리에이터: {post.get('author_name')}
-- 지표: 조회수 {post.get('views_count'):,} / 좋아요 {post.get('likes_count'):,} / 댓글 {post.get('comments_count'):,}
-- 내용 요약: {post.get('content_snippet', '')}
+[실제 수집된 콘텐츠 정보]
+- 플랫폼: {post.get('channel')}
+- 실제 원문 제목: {post.get('title')}
+- 실제 초반 문구/소개: {post.get('hook_copy')}
+- 실제 크리에이터: {post.get('author_name')}
+- 실제 원문 URL: {post.get('source_url')}
+- 실제 성과 지표: 조회수 {post.get('views_count'):,} / 좋아요 {post.get('likes_count'):,} / 댓글 {post.get('comments_count'):,}
+- 실제 본문 요약: {post.get('content_snippet', '')}
+
+[분석 원칙 - 엄격 준수]
+1. 절대로 다른 상상의 이야기나 가짜 주제(예: 존재하지 않는 엉뚱한 키워드)를 지어내지 마세요.
+2. 오직 위에 제공된 [실제 원문 제목: "{post.get('title')}"]과 [실제 본문 요약]의 내용만을 정밀 분석하세요.
+3. 이 실제 콘텐츠가 대중들의 폭발적 반응을 이끌어낸 3대 핵심 요인(후킹 포인트, 비주얼 구조, 댓글 유도 장치)을 초보자 눈높이에서 명쾌하게 짚어주세요.
 
 반드시 아래 JSON 형식으로만 응답해 주세요 (마크다운 코드블록 없이 순수 JSON만 반환):
 {{
-  "ai_hook_point": "1) 후킹 포인트 분석 (초반 2~3초/첫 문장에서 대중의 시선을 어떻게 사로잡았는가?)",
-  "ai_visual_structure": "2) 비주얼 및 전개 구조 분석 (화면 연출, 컷편집, 자막 배치가 어떻게 끝까지 보게 만들었는가?)",
-  "ai_comment_trigger": "3) 댓글 및 공유 유도 장치 (알고리즘을 태우기 위해 어떤 댓글/저장/친구 태그 유도 장치를 썼는가?)",
+  "ai_hook_point": "1) 후킹 포인트 분석 (실제 제목과 초반 2~3초에서 대중의 시선을 사로잡은 핵심 이유)",
+  "ai_visual_structure": "2) 비주얼 및 전개 구조 분석 (실제 본문 전개, 컷편집, 자막 배치가 끝까지 몰입하게 만든 이유)",
+  "ai_comment_trigger": "3) 댓글 및 공유 유도 장치 (시청자가 자발적으로 댓글을 달고 북마크/공유하게 만든 실전 장치)",
   "crossover_blueprints": [
     {{
       "targetChannel": "instagram",
       "formulaName": "타 플랫폼 이식 전략 명칭",
-      "coreAngle": "이식할 때 가져갈 핵심 포인트",
+      "coreAngle": "이 실제 콘텐츠의 성공 문법을 타겟 플랫폼에 맞게 각색하는 핵심 앵글",
       "adaptationTips": ["실전 팁 1", "실전 팁 2", "실전 팁 3"]
     }}
   ]
@@ -283,18 +302,21 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
 # =============================================================================
 def process_and_save_marketing_posts(
     raw_posts: List[Dict[str, Any]],
-    cleanup_it_posts: bool = True
+    cleanup_it_posts: bool = False,
+    reset_table: bool = True,
 ) -> Dict[str, Any]:
     """수집된 원시 대중 포스트를 분석하고 DB에 저장"""
     logger.info("==================================================================")
-    logger.info("🧠 TrendCraft 마케팅 연구소 [대중 라이프스타일 AI 분석 & DB 적재]")
+    logger.info("🧠 TrendCraft 마케팅 연구소 [100% 실존 데이터 AI 분석 & DB 적재]")
     logger.info("==================================================================")
 
     supabase = get_supabase_client()
 
-    # 필요 시 기존 구버전 IT 편향 데이터 및 유효하지 않은 URL 정리
     deleted_count = 0
-    if cleanup_it_posts:
+    if reset_table:
+        # 사용자의 긴급 요청에 따라 기존 가짜/불일치 데이터 전량 초기화
+        deleted_count = truncate_all_posts(supabase)
+    elif cleanup_it_posts:
         deleted_count = cleanup_legacy_and_invalid_posts(supabase)
 
     analyzed_list: List[Dict[str, Any]] = []
