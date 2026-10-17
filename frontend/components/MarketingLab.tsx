@@ -1351,17 +1351,16 @@ export default function MarketingLab() {
         post.keywords.some((k) => k.toLowerCase().includes(q)) ||
         post.author_name.toLowerCase().includes(q);
 
-      // 5대 세부 카테고리 필터 (유튜브 등)
+      // 4대 Faceless 자동화 장르 필터
       let matchSubCategory = true;
       if (selectedSubCategory !== 'all') {
         const subCat = selectedSubCategory.toLowerCase();
         const hasKeywordMatch = post.keywords.some((k) => k.toLowerCase().includes(subCat));
         const hasTitleMatch =
-          (selectedSubCategory === '역사/야담' && (post.title.includes('야사') || post.title.includes('야담') || post.title.includes('문명') || post.title.includes('역사'))) ||
-          (selectedSubCategory === '경제/지식' && (post.title.includes('경제') || post.title.includes('부의') || post.title.includes('트렌드') || post.title.includes('돈'))) ||
-          (selectedSubCategory === '심리학' && (post.title.includes('심리') || post.title.includes('인간') || post.title.includes('멘탈') || post.title.includes('처세'))) ||
-          (selectedSubCategory === '과학/미스터리' && (post.title.includes('과학') || post.title.includes('우주') || post.title.includes('미스터리') || post.title.includes('모션'))) ||
-          (selectedSubCategory === '이슈/사건사고' && (post.title.includes('사건') || post.title.includes('미제') || post.title.includes('프로파일링') || post.title.includes('실화')));
+          (selectedSubCategory === '과학/우주' && (post.title.includes('과학') || post.title.includes('우주') || post.title.includes('문명') || post.title.includes('미스터리') || post.title.includes('다큐'))) ||
+          (selectedSubCategory === '경제/기업' && (post.title.includes('경제') || post.title.includes('기업') || post.title.includes('빅테크') || post.title.includes('비밀') || post.title.includes('부의'))) ||
+          (selectedSubCategory === '심리/처세' && (post.title.includes('심리') || post.title.includes('처세') || post.title.includes('인간') || post.title.includes('뇌과학') || post.title.includes('멘탈'))) ||
+          (selectedSubCategory === '사건사고' && (post.title.includes('사건') || post.title.includes('미제') || post.title.includes('프로파일링') || post.title.includes('실화') || post.title.includes('비하인드')));
         matchSubCategory = hasKeywordMatch || Boolean(hasTitleMatch);
       }
 
@@ -1890,11 +1889,10 @@ export default function MarketingLab() {
                   </span>
                   {[
                     { id: 'all', label: '전체' },
-                    { id: '역사/야담', label: '역사/야담' },
-                    { id: '경제/지식', label: '경제/지식' },
-                    { id: '심리학', label: '심리학' },
-                    { id: '과학/미스터리', label: '과학/미스터리' },
-                    { id: '이슈/사건사고', label: '이슈/사건사고' },
+                    { id: '과학/우주', label: '과학/우주' },
+                    { id: '경제/기업', label: '경제/기업' },
+                    { id: '심리/처세', label: '심리/처세' },
+                    { id: '사건사고', label: '사건사고' },
                   ].map((cat) => {
                     const isSelected = selectedSubCategory === cat.id;
                     return (

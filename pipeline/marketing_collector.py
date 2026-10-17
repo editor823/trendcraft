@@ -172,17 +172,21 @@ def is_within_14_days(published_text: str) -> bool:
 
 
 NEGATIVE_CHANNELS_AND_KEYWORDS = [
-    # 1. 비AI / 실사 사람 직접 출연 채널 / 스튜디오형 대형 채널
-    "브이로그", "vlog", "인터뷰", "강의", "현장취재", "실제출연", "스튜디오", "직접출연", "캠",
-    "드림텔러", "김시선", "빨간토마토", "지식채널", "디글", "tvn", "kbs", "mbc", "sbs", "jtbc", "ytn", "채널a", "엠넷",
-    # 2. 정적 1장 오디오북 / 수면용 저품질 영상
+    # 1. 야담, 조선, 야사, 민담, 설화 영구 차단
+    "야담", "조선", "야사", "민담", "옛날이야기", "설화", "전설", "민화",
+    # 2. 비AI / 실사 사람 직접 출연 채널 / 스튜디오 / 토크 / 강의 / 인터뷰 / 교실 차단
+    "인터뷰", "토크", "브이로그", "vlog", "교실", "선생님", "강의", "스튜디오", "뉴스",
+    "직장수업", "라이브", "수업", "교수", "박사", "변호사", "의사", "약사", "트레이너", "기자", "앵커",
+    "브리핑", "직접출연", "대담", "패널", "현장취재", "소개팅", "연애상담", "상담소", "쇼츠", "shorts",
+    "드림텔러", "김시선", "빨간토마토", "지식채널", "디글", "tvn", "kbs", "mbc", "sbs", "jtbc", "ytn", "채널a", "엠넷", "mbn", "tv조선",
+    # 3. 정적 1장 오디오북 / 수면용 / 팟캐스트 저품질 영상 차단
     "오디오북", "수면용", "asmr", "명상", "낭독", "팟캐스트", "음악듣기",
-    "잠잘때", "수면", "꿀잠", "자장가", "백색소음", "연속재생", "몰아듣기", "듣는 옛날이야기", "잠잘 때", "틀어놓고"
+    "잠잘때", "수면", "꿀잠", "자장가", "백색소음", "연속재생", "몰아듣기", "틀어놓고"
 ]
 
 
 def is_negative_content(title: str, author: str, snippet: str = "") -> bool:
-    """비AI 실사 사람 출연 채널 및 정적 1장 오디오북 저품질 영상 검출"""
+    """비AI 실사 사람 출연 채널, 야담/조선 야사, 강의/토크/교실, 정적 오디오북 저품질 영상 원천 차단"""
     combined = f"{title} {author} {snippet}".lower()
     for neg in NEGATIVE_CHANNELS_AND_KEYWORDS:
         if neg in combined:
@@ -238,18 +242,18 @@ def parse_subscribers(sub_text: str) -> int:
     return int(digits) if digits else 0
 
 
-def is_within_30_days(published_text: str) -> bool:
-    """최근 30일(1개월) 이내 영상인지 검증 (2개월 이상, 년 단위 옛날 영상 완전 배제)"""
+def is_within_60_days(published_text: str) -> bool:
+    """최근 60일(약 2개월) 이내 영상인지 검증 (3개월 이상, 년 단위 옛날 영상 완전 배제)"""
     if not published_text:
         return False
     if "년 전" in published_text:
         return False
-    # 2개월 전 ~ 11개월 전 배제
+    # 3개월 전 ~ 11개월 전 배제
     m_month = re.search(r"(\d+)개월 전", published_text)
-    if m_month and int(m_month.group(1)) >= 2:
+    if m_month and int(m_month.group(1)) >= 3:
         return False
-    # 시간 전, 분 전, 방금, 어제, 일 전, 주 전, 1개월 전
-    if any(unit in published_text for unit in ["시간 전", "분 전", "방금", "어제", "일 전", "주 전", "1개월 전"]):
+    # 시간 전, 분 전, 방금, 어제, 일 전, 주 전, 1개월 전, 2개월 전
+    if any(unit in published_text for unit in ["시간 전", "분 전", "방금", "어제", "일 전", "주 전", "1개월 전", "2개월 전"]):
         return True
     return False
 
@@ -287,51 +291,48 @@ def get_channel_subscribers(video_id: str, author_name: str = "") -> int:
 
 
 # =============================================================================
-# 1. YouTube 5대 카테고리 얼굴 없는 채널(Faceless) & V/S Outlier 대규모 수집기 (25~30건)
+# 1. YouTube 4대 자동화 장르 얼굴 없는 채널(Faceless) & V/S Outlier 정밀 수집기
 # =============================================================================
-def collect_youtube_posts(limit: int = 25) -> List[Dict[str, Any]]:
+def collect_youtube_posts(limit: int = 15) -> List[Dict[str, Any]]:
     """
-    [5대 카테고리 전면 다변화] 얼굴 없는 채널(Faceless) & V/S Outlier 영상 25~30건 수집
-    - 카테고리 1: [역사/야담/미스터리] '조선 야사', '미스터리 실화', '초고대문명', '역사 비화'
-    - 카테고리 2: [경제/머니/글로벌지식] '경제 지식', '글로벌 경제 해설', '빅테크 트렌드', '부의 법칙'
-    - 카테고리 3: [심리학/처세술/인간관계] '인간 심리', '나르시시스트 특징', '처세술', '멘탈 관리법'
-    - 카테고리 4: [과학/우주/모션그래픽] '우주 미스터리', '과학 상식', '지식 모션그래픽'
-    - 카테고리 5: [이슈/사건사고 요약] '미제사건 요약', '사건 프로파일링', '충격 실화 사건'
-    - V/S 완화 기준: 구독자 5만 이하 중 V/S >= 3.0배 (또는 조회수 2만 이상)
+    [100% 얼굴 없는 채널(Faceless) & V/S Outlier 엄격 선별]
+    - 4대 자동화 장르:
+      ① [과학 / 우주 / 미스터리]: '우주 다큐', '초고대문명 다큐', '과학 모션그래픽', '지식 한스푼 우주'
+      ② [경제 / 기업 스토리 / 테크]: '기업 망한 이유 다큐', '빅테크 비하인드', '솔로몬의 부의 법칙', '끌어당김이야기'
+      ③ [심리 / 처세 / 뇌과학]: '인간관계 심리 법칙', '다크 심리학', '뇌과학 처세', '심리 트릭'
+      ④ [사건사고 / 프로파일링]: '미제사건 총정리', '충격실화 사건 다큐', '유팬더', '범죄 심리 프로파일링'
+    - V/S Outlier 엄격 강제:
+      * 체급빨 대형 채널(구독자 15만 초과) 원천 배제.
+      * 반드시 조회수(views) >= 구독자수(subscribers) * 1.5 (V/S Ratio >= 1.5배).
+      * 실사 사람 출연, 토크, 강의, 브이로그, 인터뷰, 교실, 오디오북 원천 차단.
     """
-    logger.info("▶ [1/7] YouTube 5대 카테고리 얼굴 없는 채널(Faceless) 25~30건 대규모 수집 시작...")
+    logger.info("▶ [1/7] YouTube 4대 Faceless 자동화 장르 & V/S > 1.5배 엄격 정밀 수집 시작...")
     posts: List[Dict[str, Any]] = []
 
     target_categories = [
         {
-            "id": "history",
-            "name": "역사/야담",
-            "keywords": ["조선 야사", "미스터리 실화", "초고대문명", "역사 비화"],
-            "target": 5,
+            "id": "science",
+            "name": "과학/우주",
+            "keywords": ["우주 다큐", "우주 미스터리 다큐", "초고대문명 다큐", "과학 모션그래픽", "지식 한스푼 우주", "블랙홀 비밀 다큐"],
+            "target": 3,
         },
         {
             "id": "economy",
-            "name": "경제/지식",
-            "keywords": ["글로벌 경제 해설", "경제 지식 요약", "빅테크 트렌드", "부의 법칙"],
-            "target": 5,
+            "name": "경제/기업",
+            "keywords": ["솔로몬의 부의 법칙", "끌어당김이야기_인생통찰", "기업 망한 이유 다큐", "빅테크 비하인드", "글로벌 경제 비밀 다큐", "비즈니스 흥망성쇠"],
+            "target": 3,
         },
         {
             "id": "psychology",
-            "name": "심리학",
-            "keywords": ["인간 심리 법칙", "나르시시스트 특징", "처세술 대화법", "멘탈 관리법"],
-            "target": 5,
-        },
-        {
-            "id": "science",
-            "name": "과학/미스터리",
-            "keywords": ["우주 미스터리 다큐", "과학 상식", "지식 모션그래픽"],
-            "target": 5,
+            "name": "심리/처세",
+            "keywords": ["인간관계 심리 법칙", "다크 심리학", "뇌과학 처세", "심리 트릭", "가스라이팅 특징", "나르시시스트 대처법"],
+            "target": 3,
         },
         {
             "id": "issue",
-            "name": "이슈/사건사고",
-            "keywords": ["미제사건 요약", "사건 프로파일링", "충격 실화 사건"],
-            "target": 5,
+            "name": "사건사고",
+            "keywords": ["유팬더", "미제사건 총정리", "충격실화 사건 다큐", "범죄 심리 프로파일링", "세기의 미스터리 사건", "숨은 세계"],
+            "target": 3,
         },
     ]
 
@@ -381,15 +382,15 @@ def collect_youtube_posts(limit: int = 25) -> List[Dict[str, Any]]:
                                 published_str = v.get("publishedTimeText", {}).get("simpleText", "")
                                 length_str = v.get("lengthText", {}).get("simpleText", "")
 
-                                # [1] 업로드 날짜: 최근 30일 이내
-                                if not is_within_30_days(published_str):
+                                # [1] 업로드 날짜: 최근 60일(2개월) 이내
+                                if not is_within_60_days(published_str):
                                     continue
 
-                                # [2] 최소 조회수: 2만 회 이상 (유연화)
-                                if views < 20000:
+                                # [2] 최소 조회수: 1.5만 회 이상
+                                if views < 15000:
                                     continue
 
-                                # [3] Faceless 네거티브 필터링 (사람 실사 얼굴, 브이로그, 인터뷰, 대형스튜디오 배제)
+                                # [3] Faceless 네거티브 필터링 (사람 실사 얼굴, 브이로그, 인터뷰, 대형스튜디오, 강의, 교실, 오디오북 배제)
                                 if is_negative_content(title, author, published_str):
                                     continue
 
@@ -401,24 +402,25 @@ def collect_youtube_posts(limit: int = 25) -> List[Dict[str, Any]]:
                                 if any(p["source_url"] == full_url for p in posts):
                                     continue
 
-                                # [5] V/S (View-to-Subscriber Ratio) 떡상 알고리즘
+                                # [5] V/S (View-to-Subscriber Ratio) 떡상 알고리즘 (엄격 강제: 조회수 > 구독자수 * 1.5)
                                 subscribers = get_channel_subscribers(vid, author)
 
-                                # 대형 채널(구독자 30만 이상) 제외 (체급빨 누적 조회수 차단)
-                                if subscribers > 300000:
+                                # 대형 채널(구독자 15만 이상) 원천 차단 (체급빨 누적 조회수 차단)
+                                if subscribers > 150000:
                                     continue
 
-                                # V/S 배율 산출
                                 if subscribers > 0:
                                     vs_ratio = round(views / subscribers, 1)
+                                    # 조회수가 구독자수보다 적거나 1.5배 미만이면 무조건 탈락! (구독자 20만인데 조회수 5만 등 절대 차단)
+                                    if views < subscribers * 1.5 or vs_ratio < 1.5:
+                                        continue
                                     outlier_str = f"구독자 대비 {vs_ratio}배 떡상"
                                 else:
-                                    vs_ratio = 4.5
-                                    outlier_str = "조회수 떡상 Outlier"
-
-                                # Outlier 필터 유연화: 구독자 5만 이하이거나, V/S 배율이 1.5배 이상이거나, 조회수 2만 이상
-                                if subscribers > 50000 and vs_ratio < 1.5 and views < 40000:
-                                    continue
+                                    # 구독자 비공개 채널: 최소 조회수 3만 회 이상인 영상만 선별
+                                    if views < 30000:
+                                        continue
+                                    vs_ratio = 2.0
+                                    outlier_str = "조회수 떡상 Outlier (구독자 비공개)"
 
                                 likes = max(800, int(views * random.uniform(0.022, 0.045)))
                                 comments = max(50, int(views * random.uniform(0.003, 0.008)))
@@ -451,7 +453,7 @@ def collect_youtube_posts(limit: int = 25) -> List[Dict[str, Any]]:
             except Exception as exc:
                 logger.warning(f"YouTube 떡상 영상 파싱 알림 ({cat_name} - {kw}): {exc}")
 
-    logger.info(f"✔ YouTube 수집 완료: 총 {len(posts)}건 (5대 카테고리 골고루 수집 성공!)")
+    logger.info(f"✔ YouTube 수집 완료: 총 {len(posts)}건 (4대 Faceless 장르 V/S > 1.5배 엄선 성공!)")
     return posts[:limit]
 
 
@@ -772,9 +774,9 @@ def collect_all_marketing_posts() -> List[Dict[str, Any]]:
 
     all_posts: List[Dict[str, Any]] = []
 
-    # 1. YouTube 5대 카테고리 얼굴 없는 채널(Faceless) & V/S Outlier 대규모 수집 (25건)
+    # 1. YouTube 4대 Faceless 자동화 장르 & V/S > 1.5배 엄격 정밀 수집 (12~16건)
     try:
-        all_posts.extend(collect_youtube_posts(limit=25))
+        all_posts.extend(collect_youtube_posts(limit=16))
     except Exception as exc:
         logger.error(f"YouTube 수집 중 오류: {exc}")
 

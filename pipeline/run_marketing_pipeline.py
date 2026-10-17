@@ -97,21 +97,27 @@ def run_pipeline():
     print(f" • 초기화된 구버전 데이터 : {summary.get('deleted_legacy_it', 0)} 건 (기존 가짜/불일치 전량 삭제)")
     print(f" • 소요 시간     : {elapsed} 초")
     print("=" * 65)
-    print("\n[🎯 유튜브 5대 카테고리 얼굴 없는 채널(Faceless) & V/S 떡상 Outlier 수집 목록]")
+    print("\n" + "=" * 110)
+    print("🎯 [100% 얼굴 없는 채널(Faceless) & V/S > 1.5배 역전 떡상 검증 테이블]")
+    print("=" * 110)
+    print(f"{'No':<3} | {'장르':<7} | {'채널명':<16} | {'구독자수':<10} | {'조회수':<12} | {'V/S 배율':<15} | {'영상 제목'}")
+    print("-" * 110)
     yt_count = 0
     for p in raw_posts:
         if p.get("channel") == "youtube":
             yt_count += 1
             subs = p.get('channel_subscribers', 0)
-            subs_str = f"{subs:,}명" if subs > 0 else "비공개/중소"
+            subs_str = f"{subs:,}명" if subs > 0 else "비공개"
+            views_str = f"{p.get('views_count', 0):,}회"
             mult = p.get('outlier_multiplier', 'V/S 떡상')
-            cat = [k for k in p.get('keywords', []) if not k.startswith('#') and not k.startswith('cat:')]
-            cat_str = f"[{cat[0]}] " if cat else ""
-            print(f" {yt_count:2d}. {cat_str}{p.get('title')}")
-            print(f"     - 채널: {p.get('author_name')} (구독자: {subs_str}) | 조회수: {p.get('views_count', 0):,}회 | 🔥 {mult}")
-            print(f"     - 🔗 {p.get('source_url')}")
-    print("=" * 65)
-    print(f"총 {yt_count}건의 유튜브 떡상 영상이 DB에 적재되었습니다.")
+            cat = [k for k in p.get('keywords', []) if not k.startswith('#') and not k.startswith('cat:') and not k.startswith('얼굴') and not '떡상' in k and not '[' in k]
+            cat_str = cat[0] if cat else "자동화"
+            author = p.get('author_name', '')[:14]
+            title = p.get('title', '')
+            print(f"{yt_count:<3} | {cat_str:<7} | {author:<16} | {subs_str:<10} | {views_str:<12} | {mult:<15} | {title}")
+            print(f"     🔗 {p.get('source_url')}")
+    print("=" * 110)
+    print(f"총 {yt_count}건의 순도 100% Faceless 떡상 영상이 DB에 성공적으로 적재되었습니다.")
     print("👉 프론트엔드 대시보드(http://localhost:3000)의 [🔬 마케팅 연구소] 탭에서 확인하세요!\n")
 
 
