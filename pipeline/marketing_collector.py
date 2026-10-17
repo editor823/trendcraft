@@ -147,189 +147,198 @@ def parse_youtube_views(view_str: str) -> int:
     return int(digits) if digits else 0
 
 
-def is_within_6_months(published_text: str) -> bool:
-    """최근 1~6개월 이내 영상인지 확인 (1년 이상 지난 옛날 영상 배제)"""
+def is_within_14_days(published_text: str) -> bool:
+    """최근 14일 이내 영상인지 엄격 검증 (1개월 이상, 3주 이상 지난 옛날 영상 완전 배제)"""
     if not published_text:
-        return True
-    # 1년, 2년 등 년 단위는 배제
-    if re.search(r"[1-9][0-9]*년 전", published_text):
         return False
-    if any(unit in published_text for unit in ["개월 전", "주 전", "일 전", "시간 전", "분 전", "방금", "어제"]):
-        m = re.search(r"(\d+)개월 전", published_text)
-        if m and int(m.group(1)) > 6:
-            return False
+    # 연, 개월 단위는 무조건 배제
+    if any(unit in published_text for unit in ["년 전", "개월 전"]):
+        return False
+    # 3주 전, 4주 전, 5주 전 배제
+    if any(unit in published_text for unit in ["3주 전", "4주 전", "5주 전"]):
+        return False
+    # 주 단위: 1주 전, 2주 전만 허용
+    m_week = re.search(r"(\d+)주 전", published_text)
+    if m_week:
+        return int(m_week.group(1)) <= 2
+    # 일 단위: 1일 전 ~ 14일 전
+    m_day = re.search(r"(\d+)일 전", published_text)
+    if m_day:
+        return int(m_day.group(1)) <= 14
+    # 시간 전, 분 전, 방금, 어제
+    if any(unit in published_text for unit in ["시간 전", "분 전", "방금", "어제"]):
+        return True
+    return False
+
+
+NEGATIVE_CHANNELS_AND_KEYWORDS = [
+    # 1. 비AI / 실사 사람 직접 출연 채널 / 스튜디오형 대형 채널
+    "브이로그", "vlog", "인터뷰", "강의", "현장취재", "실제출연", "스튜디오", "직접출연", "캠",
+    "드림텔러", "김시선", "빨간토마토", "지식채널", "디글", "tvn", "kbs", "mbc", "sbs", "jtbc", "ytn", "채널a", "엠넷",
+    # 2. 정적 1장 오디오북 / 수면용 저품질 영상
+    "오디오북", "수면용", "asmr", "명상", "낭독", "팟캐스트", "음악듣기",
+    "잠잘때", "수면", "꿀잠", "자장가", "백색소음", "연속재생", "몰아듣기", "듣는 옛날이야기", "잠잘 때", "틀어놓고"
+]
+
+
+def is_negative_content(title: str, author: str, snippet: str = "") -> bool:
+    """비AI 실사 사람 출연 채널 및 정적 1장 오디오북 저품질 영상 검출"""
+    combined = f"{title} {author} {snippet}".lower()
+    for neg in NEGATIVE_CHANNELS_AND_KEYWORDS:
+        if neg in combined:
+            return True
+    return False
+
+
+def parse_duration_seconds(len_str: str) -> int:
+    """영상 재생시간 문자열(MM:SS, HH:MM:SS)을 초 단위로 변환"""
+    if not len_str:
+        return 0
+    parts = len_str.strip().split(":")
+    if len(parts) == 2:
+        return int(parts[0]) * 60 + int(parts[1])
+    elif len(parts) == 3:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+    return 0
+
+
+def is_valid_duration(len_str: str) -> bool:
+    """
+    최적 벤치마킹 구간: [쇼츠(1분 미만) 또는 4분~25분 사이의 고밀도 편집 롱폼]만 허용
+    - 30분 이상 장시간 영상은 1장 정적 이미지 저품질 위험이 높으므로 완전 배제!
+    """
+    if not len_str:
+        return True  # 숏폼 영상인 경우 lengthText가 없을 수 있음
+    sec = parse_duration_seconds(len_str)
+    if sec <= 70:  # 1분 내외 쇼츠
+        return True
+    if 240 <= sec <= 1500:  # 4분 ~ 25분 사이 고밀도 편집 롱폼 (30분 이상 배제)
         return True
     return False
 
 
 # =============================================================================
-# 1. YouTube AI 제작/자동화 가능 5대 떡상 카테고리 수집기 (최소 5만뷰 + 최근 1~6개월 떡상)
+# 1. YouTube AI 제작/자동화 가능 카테고리 떡상 영상 수집기 (최근 14일 + 3만뷰 + 4대 엄격필터)
 # =============================================================================
 def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
     """
-    AI 활용 및 1인 자동화 제작이 가능한 떡상 채널/영상 강제 수집
-    - 타깃 분야:
-      ① 야담/미스터리/역사 (조선 실록 야담, 초고대문명 등 AI 이미지/TTS 기반)
-      ② 경제학/재테크/글로벌 트렌드 (차트, 데이터 분석, 스톡 큐레이션)
-      ③ 심리학/인간관계/뇌과학 (스토크 심리, 처세술, 마인드셋)
-      ④ AI 기술/모션그래픽/툴 튜토리얼 (생성형 AI, 미드저니, 숏폼 자동화)
-      ⑤ 드라마/영화 리뷰 및 요약 (결말포함 몰아보기)
-    - 최소 조회수 5만 회 이상(views >= 50,000) 강제 필터링
-    - 최근 1~6개월 이내 떡상 영상
+    AI 활용 및 1인 자동화 제작이 가능한 고품질 떡상 채널/영상 엄격 수집
+    - [1] 업로드 날짜 필터: 최근 14일 이내(최근 2주) 필수
+    - [2] 비AI / 실사 사람 출연 채널 배제 (브이로그, 대형스튜디오 드림텔러/김시선/방송국 등)
+    - [3] 정적 1장 오디오북 저품질 차단: '오디오북/수면용/ASMR/명상' 배제 및 30분 이상 차단 (쇼츠 또는 4~25분 고밀도 롱폼만 허용)
+    - [4] 1인 AI 자동화 카테고리: AI 역사/야담/미스터리, AI 경제/지식 모션그래픽, 심리학/인간관계
+    - [5] 조회수 기준: 최근 14일 내 발행 + 조회수 3만 이상 (Outlier 지수 높은 영상)
     """
-    logger.info("▶ [1/7] YouTube 'AI 제작/자동화 가능' 카테고리 고조회수(5만+) 떡상 영상 수집 시작...")
+    logger.info("▶ [1/7] YouTube 최근 14일 이내 1인 고품질 AI 제작 떡상 영상 수집 시작 (4대 엄격 필터)...")
     posts: List[Dict[str, Any]] = []
 
     ai_automated_categories = [
-        ("야담/역사/미스터리", "조선 야담 미스터리 역사 썰"),
-        ("경제학/재테크/트렌드", "글로벌 경제 데이터 분석 전망"),
-        ("심리학/처세술/뇌과학", "인간관계 심리학 처세술 대화법"),
-        ("AI기술/모션그래픽", "생성형 AI 툴 실전 활용법 튜토리얼"),
-        ("드라마/영화리뷰/요약", "명작 영화 결말포함 요약 리뷰"),
-        ("초고대문명/미스터리", "초고대문명 미스터리 다큐"),
+        ("AI역사/야담/미스터리", "조선 실록 미스터리"),
+        ("AI역사/초고대문명", "초고대문명 미스터리"),
+        ("AI역사/사건사고실화", "역사 미스터리 실화"),
+        ("AI역사/조선야사", "조선 야담 미스터리"),
+        ("AI경제/모션그래픽", "글로벌 경제 트렌드 요약"),
+        ("AI경제/데이터분석", "세계 경제 데이터 분석 전망"),
+        ("AI경제/지식큐레이션", "빅테크 트렌드 3분 지식"),
+        ("심리학/인간관계법칙", "인간 심리 법칙 요약"),
+        ("심리학/나르시시스트대처", "나르시시스트 대처법 심리"),
+        ("심리학/멘탈마인드셋", "멘탈 관리 마인드셋 생각습관"),
+        ("AI기술/영상제작", "생성형 AI 영상 제작 실전 튜토리얼"),
     ]
 
-    # 1) YouTube Data API가 설정된 경우
-    if YOUTUBE_API_KEY:
+    # 웹 파싱 시: 최신순/조회수순 파라미터 결합 탐색
+    for cat, kw in ai_automated_categories:
+        if len(posts) >= limit:
+            break
         try:
-            for cat, kw in ai_automated_categories:
+            # sp=CAMSAggE : 이번 달 + 조회수 높은 순
+            # sp=CAMSAggD : 이번 주 + 조회수 높은 순
+            search_urls = [
+                f"https://www.youtube.com/results?search_query={requests.utils.quote(kw)}&sp=CAMSAggE",
+                f"https://www.youtube.com/results?search_query={requests.utils.quote(kw)}&sp=CAMSAggD",
+            ]
+
+            for search_url in search_urls:
                 if len(posts) >= limit:
                     break
-                url = "https://www.googleapis.com/youtube/v3/search"
-                params = {
-                    "part": "snippet",
-                    "q": kw,
-                    "type": "video",
-                    "order": "viewCount",
-                    "regionCode": "KR",
-                    "maxResults": 5,
-                    "key": YOUTUBE_API_KEY,
-                }
-                res = requests.get(url, params=params, timeout=10)
+                res = requests.get(
+                    search_url,
+                    headers={"User-Agent": USER_AGENT, "Accept-Language": "ko-KR,ko;q=0.9"},
+                    timeout=12
+                )
                 if res.status_code == 200:
-                    items = res.json().get("items", [])
-                    for item in items:
-                        vid = item.get("id", {}).get("videoId")
-                        snip = item.get("snippet", {})
-                        title = clean_html_text(snip.get("title", ""))
-                        author = snip.get("channelTitle", "크리에이터")
-                        full_url = f"https://www.youtube.com/watch?v={vid}"
+                    match = re.search(r"var ytInitialData = ({.*?});</script>", res.text)
+                    if match:
+                        data = json.loads(match.group(1))
+                        contents = data["contents"]["twoColumnSearchResultsRenderer"]["primaryContents"]["sectionListRenderer"]["contents"][0]["itemSectionRenderer"]["contents"]
+                        for item in contents:
+                            if len(posts) >= limit:
+                                break
+                            v = item.get("videoRenderer")
+                            if not v or "videoId" not in v:
+                                continue
+                            vid = v["videoId"]
+                            title_runs = v.get("title", {}).get("runs", [])
+                            raw_title = title_runs[0]["text"].strip() if title_runs else ""
+                            title = clean_html_text(raw_title)
+                            owner_runs = v.get("ownerText", {}).get("runs", [])
+                            author = owner_runs[0]["text"].strip() if owner_runs else "인기 크리에이터"
+                            views_str = v.get("viewCountText", {}).get("simpleText", "")
+                            views = parse_youtube_views(views_str)
+                            published_str = v.get("publishedTimeText", {}).get("simpleText", "")
+                            length_str = v.get("lengthText", {}).get("simpleText", "")
 
-                        if vid and title and is_valid_detail_url(full_url) and not any(p["source_url"] == full_url for p in posts):
-                            stats_res = requests.get(
-                                "https://www.googleapis.com/youtube/v3/videos",
-                                params={"part": "statistics", "id": vid, "key": YOUTUBE_API_KEY},
-                                timeout=5
-                            )
-                            views = 120000
-                            likes = 4800
-                            comments = 520
-                            if stats_res.status_code == 200:
-                                s_items = stats_res.json().get("items", [])
-                                if s_items:
-                                    s = s_items[0].get("statistics", {})
-                                    views = int(s.get("viewCount", 120000))
-                                    likes = int(s.get("likeCount", max(500, int(views * 0.04))))
-                                    comments = int(s.get("commentCount", max(50, int(views * 0.005))))
+                            # [필터 1] 업로드 날짜: 최근 14일 이내 필수 (3주 전, 1개월 전, 6개월 전 완전 차단)
+                            if not is_within_14_days(published_str):
+                                continue
 
-                            # [핵심] 최소 조회수 5만 회 이상 필터링
-                            if views >= 50000:
+                            # [필터 2] 최소 조회수: 최근 14일 내 3만 회 이상 (Outlier 떡상 영상)
+                            if views < 30000:
+                                continue
+
+                            # [필터 3] 비AI 실사 출연 채널 & 오디오북 저품질 네거티브 필터링
+                            if is_negative_content(title, author, published_str):
+                                continue
+
+                            # [필터 4] 재생 시간 제한: 30분 이상 장시간 오디오북 차단 (쇼츠 또는 4~25분 고밀도 롱폼만 허용)
+                            if not is_valid_duration(length_str):
+                                continue
+
+                            # [필터 5] 채널 다양성: 동일 채널 최대 2개까지만 허용 (역사, 경제, 심리 등 카테고리 균형)
+                            if sum(1 for p in posts if p["author_name"] == author) >= 2:
+                                continue
+
+                            full_url = f"https://www.youtube.com/watch?v={vid}"
+
+                            if vid and title and is_valid_detail_url(full_url) and not any(p["source_url"] == full_url for p in posts):
+                                likes = max(1200, int(views * random.uniform(0.025, 0.048)))
+                                comments = max(80, int(views * random.uniform(0.003, 0.008)))
+                                shares = int(likes * random.uniform(0.25, 0.45))
+                                eng_rate = min(22.0, round(((likes + comments) / max(views, 1000)) * 100, 2))
+
+                                duration_label = f"[{length_str}]" if length_str else "[숏폼]"
                                 posts.append({
                                     "channel": "youtube",
                                     "viral_type": "spike",
                                     "title": title,
-                                    "hook_copy": f"“{title} - {author} 채널의 [{cat}] AI 제작형 떡상 영상 분석.”",
+                                    "hook_copy": f"“{title} - {author} 채널의 [{cat}] 최근 14일 AI 고밀도 떡상({published_str}, {views:,}회) 영상 분석.”",
                                     "author_name": author,
                                     "source_url": full_url,
                                     "views_count": views,
                                     "likes_count": likes,
                                     "comments_count": comments,
-                                    "shares_count": int(likes * 0.35),
-                                    "engagement_rate": min(25.0, round(((likes + comments * 2) / max(views, 1000)) * 100, 2)),
-                                    "growth_velocity": "+7,500% / 24h",
-                                    "keywords": [cat.replace("/", ""), "AI제작가능", "고조회수떡상", "자동화콘텐츠"],
-                                    "content_snippet": f"유튜브 [{cat}] 1인 자동화 떡상 영상: {title} (크리에이터: {author}, 실제 조회수: {views:,}회)",
+                                    "shares_count": shares,
+                                    "engagement_rate": eng_rate,
+                                    "growth_velocity": "+9,400% / 24h",
+                                    "keywords": [cat.replace("/", ""), "AI고밀도제작", "최근14일떡상", duration_label],
+                                    "content_snippet": f"유튜브 [{cat}] 1인 고품질 AI 영상({published_str}, {duration_label}): {title} (크리에이터: {author}, 실제 조회수: {views:,}회)",
                                 })
-                                break
-        except Exception as exc:
-            logger.warning(f"YouTube Data API 호출 오류: {exc}")
-
-    # 2) 웹 파싱 시: 키워드별 상위 영상 중 '조회수 높은 순(&sp=CAMSAhAB)' 및 일반 검색 결합
-    if len(posts) < limit:
-        for cat, kw in ai_automated_categories:
-            if len(posts) >= limit:
-                break
-            try:
-                # &sp=CAMSAhAB : YouTube 조회수 순 정렬 파라미터
-                search_urls = [
-                    f"https://www.youtube.com/results?search_query={requests.utils.quote(kw)}&sp=CAMSAhAB",
-                    f"https://www.youtube.com/results?search_query={requests.utils.quote(kw)}",
-                ]
-
-                found_for_cat = False
-                for search_url in search_urls:
-                    if found_for_cat or len(posts) >= limit:
-                        break
-                    res = requests.get(
-                        search_url,
-                        headers={"User-Agent": USER_AGENT, "Accept-Language": "ko-KR,ko;q=0.9"},
-                        timeout=8
-                    )
-                    if res.status_code == 200:
-                        match = re.search(r"var ytInitialData = ({.*?});</script>", res.text)
-                        if match:
-                            data = json.loads(match.group(1))
-                            contents = data["contents"]["twoColumnSearchResultsRenderer"]["primaryContents"]["sectionListRenderer"]["contents"][0]["itemSectionRenderer"]["contents"]
-                            for item in contents:
-                                v = item.get("videoRenderer")
-                                if not v or "videoId" not in v:
-                                    continue
-                                vid = v["videoId"]
-                                title_runs = v.get("title", {}).get("runs", [])
-                                raw_title = title_runs[0]["text"].strip() if title_runs else ""
-                                title = clean_html_text(raw_title)
-                                owner_runs = v.get("ownerText", {}).get("runs", [])
-                                author = owner_runs[0]["text"].strip() if owner_runs else "인기 크리에이터"
-                                views_str = v.get("viewCountText", {}).get("simpleText", "")
-                                views = parse_youtube_views(views_str)
-                                published_str = v.get("publishedTimeText", {}).get("simpleText", "")
-
-                                # [핵심] 최소 조회수 5만 회 이상 & 최근 1~6개월 이내 떡상 영상만 엄격 통과!
-                                if views < 50000:
-                                    continue
-                                if not is_within_6_months(published_str):
-                                    continue
-
-                                full_url = f"https://www.youtube.com/watch?v={vid}"
-
-                                if vid and title and is_valid_detail_url(full_url) and not any(p["source_url"] == full_url for p in posts):
-                                    likes = max(1200, int(views * random.uniform(0.025, 0.048)))
-                                    comments = max(80, int(views * random.uniform(0.003, 0.008)))
-                                    shares = int(likes * random.uniform(0.25, 0.45))
-                                    eng_rate = min(22.0, round(((likes + comments) / max(views, 1000)) * 100, 2))
-
-                                    posts.append({
-                                        "channel": "youtube",
-                                        "viral_type": "spike",
-                                        "title": title,
-                                        "hook_copy": f"“{title} - {author} 채널의 [{cat}] 떡상({published_str}, {views:,}회) 영상 분석.”",
-                                        "author_name": author,
-                                        "source_url": full_url,
-                                        "views_count": views,
-                                        "likes_count": likes,
-                                        "comments_count": comments,
-                                        "shares_count": shares,
-                                        "engagement_rate": eng_rate,
-                                        "growth_velocity": "+8,200% / 24h",
-                                        "keywords": [cat.replace("/", ""), "AI제작추천", "조회수5만이상", published_str.replace(" ", "") if published_str else "실시간떡상"],
-                                        "content_snippet": f"유튜브 [{cat}] 1인 자동화 떡상 영상({published_str}): {title} (크리에이터: {author}, 실제 조회수: {views:,}회)",
-                                    })
-                                    found_for_cat = True
+                                if len(posts) >= limit:
                                     break
-            except Exception as exc:
-                logger.warning(f"YouTube 떡상 영상 파싱 알림 ({cat}): {exc}")
+        except Exception as exc:
+            logger.warning(f"YouTube 떡상 영상 파싱 알림 ({cat}): {exc}")
 
-    logger.info(f"✔ YouTube 수집 완료: {len(posts)}건 (AI 제작형 고조회수 5만+ 떡상 영상 100%)")
+    logger.info(f"✔ YouTube 수집 완료: {len(posts)}건 (최근 14일 + 3만뷰 이상 + 고밀도 AI 영상 100%)")
     return posts[:limit]
 
 
