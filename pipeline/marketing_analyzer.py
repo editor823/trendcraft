@@ -34,6 +34,9 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 
+from marketing_collector import is_valid_detail_url
+
+
 def get_supabase_client() -> Client:
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise ValueError("SUPABASE_URL 또는 SUPABASE_KEY 환경변수가 설정되지 않았습니다.")
@@ -41,26 +44,29 @@ def get_supabase_client() -> Client:
 
 
 # =============================================================================
-# 0. 구버전 IT 편향 레코드 정리 함수 (클린업)
+# 0. 구버전 IT 편향 레코드 & 유효하지 않은 URL(메인 도메인/더미) 자동 정리 함수
 # =============================================================================
-def cleanup_legacy_it_posts(supabase: Client) -> int:
-    """기존에 등록되어 있던 좁은 IT/SaaS/프롬프트 편향 게시글들을 정리"""
-    logger.info("🧹 기존 IT 편향 데이터 필터링 및 정리 작업 진행 중...")
+def cleanup_legacy_and_invalid_posts(supabase: Client) -> int:
+    """기존 IT 편향 및 원문 링크가 메인 홈이나 더미인 레코드 정리"""
+    logger.info("🧹 기존 IT 편향 및 유효하지 않은 URL 레코드 필터링 및 정리 작업 진행 중...")
     it_keywords = ["AI", "SaaS", "프롬프트", "GA4", "코딩", "파이프라인", "마이크로 앱", "B2B"]
     deleted_count = 0
 
     try:
-        # 전체 목록 조회
-        res = supabase.table("marketing_lab_posts").select("id, title").execute()
+        res = supabase.table("marketing_lab_posts").select("id, title, source_url").execute()
         if res.data:
             for row in res.data:
                 title = row.get("title", "")
-                if any(kw.lower() in title.lower() for kw in it_keywords):
+                url = row.get("source_url", "")
+                is_it_legacy = any(kw.lower() in title.lower() for kw in it_keywords)
+                is_invalid_url = not is_valid_detail_url(url)
+
+                if is_it_legacy or is_invalid_url:
                     supabase.table("marketing_lab_posts").delete().eq("id", row["id"]).execute()
                     deleted_count += 1
-        logger.info(f"✔ 구버전 IT 편향 게시글 {deleted_count}건 정리 완료.")
+        logger.info(f"✔ 구버전 IT 및 깨진 URL 레코드 총 {deleted_count}건 정리 완료.")
     except Exception as exc:
-        logger.warning(f"기존 IT 데이터 정리 중 알림: {exc}")
+        logger.warning(f"기존 데이터 정리 중 알림: {exc}")
 
     return deleted_count
 
@@ -224,6 +230,9 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
         title = post.get("title", "").strip()
         channel = post.get("channel", "youtube")
         source_url = post.get("source_url")
+        if not is_valid_detail_url(source_url):
+            logger.warning(f"🚫 [DB 적재 차단] 유효하지 않은 source_url({source_url}) 감지! 적재 제외: {title}")
+            continue
 
         record = {
             "channel": channel,
@@ -283,10 +292,10 @@ def process_and_save_marketing_posts(
 
     supabase = get_supabase_client()
 
-    # 필요 시 기존 구버전 IT 편향 데이터 1회 정리
-    deleted_it_count = 0
+    # 필요 시 기존 구버전 IT 편향 데이터 및 유효하지 않은 URL 정리
+    deleted_count = 0
     if cleanup_it_posts:
-        deleted_it_count = cleanup_legacy_it_posts(supabase)
+        deleted_count = cleanup_legacy_and_invalid_posts(supabase)
 
     analyzed_list: List[Dict[str, Any]] = []
 
@@ -303,12 +312,12 @@ def process_and_save_marketing_posts(
     logger.info("💾 분석 완료 데이터 Supabase DB 적재(Upsert) 시작...")
     db_result = save_analyzed_posts_to_db(supabase, analyzed_list)
 
-    logger.info(f"✨ DB 적재 완료! 신규: {db_result['saved']}건, 갱신: {db_result['updated']}건, IT정리: {deleted_it_count}건")
+    logger.info(f"✨ DB 적재 완료! 신규: {db_result['saved']}건, 갱신: {db_result['updated']}건, 불량/IT정리: {deleted_count}건")
     return {
         "total_analyzed": len(analyzed_list),
         "db_saved": db_result["saved"],
         "db_updated": db_result["updated"],
-        "deleted_legacy_it": deleted_it_count,
+        "deleted_legacy_it": deleted_count,
     }
 
 

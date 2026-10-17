@@ -117,8 +117,9 @@ export function isValidDetailSourceUrl(url?: string): boolean {
     return false;
   }
 
-  // sample_ 또는 dummy 가상 파라미터 포함 여부
-  if (trimmed.includes('sample_') || trimmed.includes('.example.com')) {
+  // sample, dummy, trendcraft_ 등 가상 파라미터 포함 여부 차단
+  const dummyKeywords = ['sample', '.example.com', 'trend_', 'trendcraft_', 'dummy'];
+  if (dummyKeywords.some((kw) => trimmed.toLowerCase().includes(kw))) {
     return false;
   }
 
