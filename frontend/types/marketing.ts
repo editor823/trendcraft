@@ -100,6 +100,8 @@ export interface MarketingLabPost {
   created_at?: string;
 
   // --- 신규 고도화 분석 필드 ---
+  channel_subscribers?: number;                   // 채널 구독자 수
+  outlier_multiplier?: string;                    // V/S 떡상 배율 (예: "구독자 대비 8.4배 떡상")
   title_keyword_placement?: TitleKeywordPlacement; // 제목 키워드 배치 (앞/중간/뒤)
   title_hook_type?: string;                       // 후킹 유형 (수치 충격형, 통념 파괴형 등)
   image_count_info?: string;                      // 이미지 장수 스펙 (예: "이미지 12장 · GIF 2개")

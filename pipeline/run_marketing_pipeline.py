@@ -97,14 +97,19 @@ def run_pipeline():
     print(f" • 초기화된 구버전 데이터 : {summary.get('deleted_legacy_it', 0)} 건 (기존 가짜/불일치 전량 삭제)")
     print(f" • 소요 시간     : {elapsed} 초")
     print("=" * 65)
-    print("\n[🎯 실제 정상 작동 검증 URL 샘플 3건]")
-    sample_count = 0
+    print("\n[🎯 유튜브 얼굴 없는 채널(Faceless) & V/S 떡상 Outlier 샘플 3~5건]")
+    yt_count = 0
     for p in raw_posts:
-        if p.get("channel") in ("youtube", "naver_blog"):
-            sample_count += 1
-            print(f" {sample_count}. [{p.get('channel').upper()}] {p.get('title')}")
-            print(f"    🔗 {p.get('source_url')}")
-            if sample_count >= 3:
+        if p.get("channel") == "youtube":
+            yt_count += 1
+            subs = p.get('channel_subscribers', 0)
+            subs_str = f"{subs:,}명" if subs > 0 else "비공개/중소"
+            mult = p.get('outlier_multiplier', 'V/S 떡상')
+            print(f" {yt_count}. [얼굴없는채널] {p.get('title')}")
+            print(f"    - 채널: {p.get('author_name')} (구독자: {subs_str})")
+            print(f"    - 조회수: {p.get('views_count', 0):,}회 | 🔥 {mult}")
+            print(f"    - 🔗 {p.get('source_url')}")
+            if yt_count >= 5:
                 break
     print("=" * 65)
     print("👉 프론트엔드 대시보드(http://localhost:3000)의 [🔬 마케팅 연구소] 탭에서 확인하세요!\n")

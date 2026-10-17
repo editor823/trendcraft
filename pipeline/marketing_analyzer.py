@@ -274,6 +274,8 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
             "ai_visual_structure": post.get("ai_visual_structure", ""),
             "ai_comment_trigger": post.get("ai_comment_trigger", ""),
             "crossover_blueprints": post.get("crossover_blueprints", []),
+            "channel_subscribers": int(post.get("channel_subscribers", 0)),
+            "outlier_multiplier": str(post.get("outlier_multiplier", "")),
         }
 
         try:
@@ -288,10 +290,28 @@ def save_analyzed_posts_to_db(supabase: Client, analyzed_posts: List[Dict[str, A
 
             if existing.data and len(existing.data) > 0:
                 existing_id = existing.data[0]["id"]
-                supabase.table("marketing_lab_posts").update(record).eq("id", existing_id).execute()
+                try:
+                    supabase.table("marketing_lab_posts").update(record).eq("id", existing_id).execute()
+                except Exception as col_err:
+                    if "channel_subscribers" in str(col_err) or "outlier_multiplier" in str(col_err):
+                        fallback_rec = dict(record)
+                        fallback_rec.pop("channel_subscribers", None)
+                        fallback_rec.pop("outlier_multiplier", None)
+                        supabase.table("marketing_lab_posts").update(fallback_rec).eq("id", existing_id).execute()
+                    else:
+                        raise col_err
                 updated_count += 1
             else:
-                supabase.table("marketing_lab_posts").insert(record).execute()
+                try:
+                    supabase.table("marketing_lab_posts").insert(record).execute()
+                except Exception as col_err:
+                    if "channel_subscribers" in str(col_err) or "outlier_multiplier" in str(col_err):
+                        fallback_rec = dict(record)
+                        fallback_rec.pop("channel_subscribers", None)
+                        fallback_rec.pop("outlier_multiplier", None)
+                        supabase.table("marketing_lab_posts").insert(fallback_rec).execute()
+                    else:
+                        raise col_err
                 saved_count += 1
 
         except Exception as exc:

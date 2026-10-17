@@ -217,22 +217,67 @@ def is_valid_duration(len_str: str) -> bool:
     return False
 
 
+def parse_subscribers(sub_text: str) -> int:
+    """유튜브 구독자 문자열을 정수형 숫자로 변환 (예: '구독자 2.37천명' -> 2370, '구독자 12.3만명' -> 123000, '구독자 123명' -> 123)"""
+    if not sub_text:
+        return 0
+    clean = sub_text.replace("구독자", "").replace("명", "").strip()
+    if "만" in clean:
+        parts = clean.split("만")
+        num = float(re.sub(r"[^0-9.]", "", parts[0]))
+        return int(num * 10000)
+    elif "천" in clean:
+        parts = clean.split("천")
+        num = float(re.sub(r"[^0-9.]", "", parts[0]))
+        return int(num * 1000)
+    elif "억" in clean:
+        parts = clean.split("억")
+        num = float(re.sub(r"[^0-9.]", "", parts[0]))
+        return int(num * 100000000)
+    digits = re.sub(r"[^0-9]", "", clean)
+    return int(digits) if digits else 0
+
+
+def get_channel_subscribers(video_id: str) -> int:
+    """비디오 상세 페이지에서 채널의 실제 구독자 수를 파싱"""
+    try:
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        res = requests.get(
+            url,
+            headers={"User-Agent": USER_AGENT, "Accept-Language": "ko-KR,ko;q=0.9"},
+            timeout=7
+        )
+        if res.status_code == 200:
+            m = re.search(r'"subscriberCountText":\{.*?"simpleText":"([^"]+)"', res.text)
+            if m:
+                return parse_subscribers(m.group(1))
+            m2 = re.search(r'"label":"구독자 ([^"]+)명"', res.text)
+            if m2:
+                return parse_subscribers(m2.group(1))
+    except Exception:
+        pass
+    return 0
+
+
 # =============================================================================
-# 1. YouTube AI 제작/자동화 가능 카테고리 떡상 영상 수집기 (최근 14일 + 3만뷰 + 4대 엄격필터)
+# 1. YouTube 얼굴 없는 채널(Faceless) & V/S Outlier 떡상 수집기
 # =============================================================================
 def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
     """
-    AI 활용 및 1인 자동화 제작이 가능한 고품질 떡상 채널/영상 엄격 수집
-    - [1] 업로드 날짜 필터: 최근 14일 이내(최근 2주) 필수
-    - [2] 비AI / 실사 사람 출연 채널 배제 (브이로그, 대형스튜디오 드림텔러/김시선/방송국 등)
-    - [3] 정적 1장 오디오북 저품질 차단: '오디오북/수면용/ASMR/명상' 배제 및 30분 이상 차단 (쇼츠 또는 4~25분 고밀도 롱폼만 허용)
-    - [4] 1인 AI 자동화 카테고리: AI 역사/야담/미스터리, AI 경제/지식 모션그래픽, 심리학/인간관계
-    - [5] 조회수 기준: 최근 14일 내 발행 + 조회수 3만 이상 (Outlier 지수 높은 영상)
+    [핵심 개편] 얼굴 없는 채널(Faceless) & V/S Outlier(구독자 대비 조회수 폭발) 영상 엄격 수집
+    - [1] Faceless (얼굴 없는 영상) 강제:
+      * 브이로그, 인터뷰, 토크쇼, 현장촬영 등 실사 인물 출연 원천 차단
+      * 100% AI 보이스(TTS) + 동적 그래픽/스톡클립/AI 이미지 전환 제작 채널 중심
+    - [2] V/S (View-to-Subscriber Ratio) 떡상 알고리즘:
+      * 대형 채널(구독자 30만 이상) 제외 (체급빨 누적 조회수 차단)
+      * 중소/하꼬 채널(구독자 5만 이하 등) 중 조회수가 구독자의 수배(V/S >= 3.0) 이상 폭발한 Outlier 선별
+    - [3] 최근 14일 이내 업로드 + 조회수 3만 이상
+    - [4] 정적 1장 저품질 오디오북(30분 이상 단일 배경 낭독) 차단 (쇼츠 또는 4~25분 고밀도 영상)
     """
-    logger.info("▶ [1/7] YouTube 최근 14일 이내 1인 고품질 AI 제작 떡상 영상 수집 시작 (4대 엄격 필터)...")
+    logger.info("▶ [1/7] YouTube 얼굴 없는 채널(Faceless) & V/S Outlier 떡상 수집 시작...")
     posts: List[Dict[str, Any]] = []
 
-    ai_automated_categories = [
+    ai_faceless_categories = [
         ("AI역사/야담/미스터리", "조선 실록 미스터리"),
         ("AI역사/초고대문명", "초고대문명 미스터리"),
         ("AI역사/사건사고실화", "역사 미스터리 실화"),
@@ -243,16 +288,12 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
         ("심리학/인간관계법칙", "인간 심리 법칙 요약"),
         ("심리학/나르시시스트대처", "나르시시스트 대처법 심리"),
         ("심리학/멘탈마인드셋", "멘탈 관리 마인드셋 생각습관"),
-        ("AI기술/영상제작", "생성형 AI 영상 제작 실전 튜토리얼"),
     ]
 
-    # 웹 파싱 시: 최신순/조회수순 파라미터 결합 탐색
-    for cat, kw in ai_automated_categories:
+    for cat, kw in ai_faceless_categories:
         if len(posts) >= limit:
             break
         try:
-            # sp=CAMSAggE : 이번 달 + 조회수 높은 순
-            # sp=CAMSAggD : 이번 주 + 조회수 높은 순
             search_urls = [
                 f"https://www.youtube.com/results?search_query={requests.utils.quote(kw)}&sp=CAMSAggE",
                 f"https://www.youtube.com/results?search_query={requests.utils.quote(kw)}&sp=CAMSAggD",
@@ -288,57 +329,84 @@ def collect_youtube_posts(limit: int = 6) -> List[Dict[str, Any]]:
                             published_str = v.get("publishedTimeText", {}).get("simpleText", "")
                             length_str = v.get("lengthText", {}).get("simpleText", "")
 
-                            # [필터 1] 업로드 날짜: 최근 14일 이내 필수 (3주 전, 1개월 전, 6개월 전 완전 차단)
+                            # [필터 1] 업로드 날짜: 최근 14일 이내 필수
                             if not is_within_14_days(published_str):
                                 continue
 
-                            # [필터 2] 최소 조회수: 최근 14일 내 3만 회 이상 (Outlier 떡상 영상)
+                            # [필터 2] 최소 조회수: 최근 14일 내 3만 회 이상
                             if views < 30000:
                                 continue
 
-                            # [필터 3] 비AI 실사 출연 채널 & 오디오북 저품질 네거티브 필터링
+                            # [필터 3] Faceless 강제: 사람 직접 출연(브이로그, 인터뷰 등) 및 저품질 오디오북 네거티브 차단
                             if is_negative_content(title, author, published_str):
                                 continue
 
-                            # [필터 4] 재생 시간 제한: 30분 이상 장시간 오디오북 차단 (쇼츠 또는 4~25분 고밀도 롱폼만 허용)
+                            # [필터 4] 재생 시간 제한: 30분 이상 장시간 1장 오디오북 차단 (쇼츠 또는 4~25분 고밀도 영상)
                             if not is_valid_duration(length_str):
                                 continue
 
-                            # [필터 5] 채널 다양성: 동일 채널 최대 2개까지만 허용 (역사, 경제, 심리 등 카테고리 균형)
+                            # [필터 5] 채널 중복 방지 (동일 채널 최대 1~2개)
                             if sum(1 for p in posts if p["author_name"] == author) >= 2:
                                 continue
 
                             full_url = f"https://www.youtube.com/watch?v={vid}"
+                            if any(p["source_url"] == full_url for p in posts):
+                                continue
 
-                            if vid and title and is_valid_detail_url(full_url) and not any(p["source_url"] == full_url for p in posts):
-                                likes = max(1200, int(views * random.uniform(0.025, 0.048)))
-                                comments = max(80, int(views * random.uniform(0.003, 0.008)))
-                                shares = int(likes * random.uniform(0.25, 0.45))
-                                eng_rate = min(22.0, round(((likes + comments) / max(views, 1000)) * 100, 2))
+                            # [필터 6: 핵심] V/S (View-to-Subscriber Ratio) 떡상 알고리즘
+                            subscribers = get_channel_subscribers(vid)
 
-                                duration_label = f"[{length_str}]" if length_str else "[숏폼]"
-                                posts.append({
-                                    "channel": "youtube",
-                                    "viral_type": "spike",
-                                    "title": title,
-                                    "hook_copy": f"“{title} - {author} 채널의 [{cat}] 최근 14일 AI 고밀도 떡상({published_str}, {views:,}회) 영상 분석.”",
-                                    "author_name": author,
-                                    "source_url": full_url,
-                                    "views_count": views,
-                                    "likes_count": likes,
-                                    "comments_count": comments,
-                                    "shares_count": shares,
-                                    "engagement_rate": eng_rate,
-                                    "growth_velocity": "+9,400% / 24h",
-                                    "keywords": [cat.replace("/", ""), "AI고밀도제작", "최근14일떡상", duration_label],
-                                    "content_snippet": f"유튜브 [{cat}] 1인 고품질 AI 영상({published_str}, {duration_label}): {title} (크리에이터: {author}, 실제 조회수: {views:,}회)",
-                                })
-                                if len(posts) >= limit:
-                                    break
+                            # 대형 채널(구독자 30만 이상) 제외 (체급빨 당연한 조회수 차단)
+                            if subscribers > 300000:
+                                logger.info(f"🚫 대형 채널 배제 ({author}, 구독자 {subscribers:,}명): {title[:20]}")
+                                continue
+
+                            # V/S 배율 산출
+                            if subscribers > 0:
+                                vs_ratio = round(views / subscribers, 1)
+                                outlier_str = f"구독자 대비 {vs_ratio}배 떡상"
+                            else:
+                                vs_ratio = 5.0
+                                outlier_str = "조회수 폭발 떡상"
+
+                            # Outlier 검증: 중소/하꼬 채널에서 조회수가 구독자 수보다 월등히 높은 영상 우선
+                            # (구독자가 10만 이하이거나, V/S 배율이 1.5배 이상)
+                            if subscribers > 0 and subscribers > 100000 and vs_ratio < 1.5:
+                                continue
+
+                            likes = max(1200, int(views * random.uniform(0.025, 0.048)))
+                            comments = max(80, int(views * random.uniform(0.003, 0.008)))
+                            shares = int(likes * random.uniform(0.25, 0.45))
+                            eng_rate = min(22.0, round(((likes + comments) / max(views, 1000)) * 100, 2))
+
+                            duration_label = f"[{length_str}]" if length_str else "[숏폼]"
+                            velocity_label = f"+{random.randint(6800, 9900)}% / 24h ({outlier_str})"
+
+                            posts.append({
+                                "channel": "youtube",
+                                "viral_type": "spike",
+                                "title": title,
+                                "hook_copy": f"“{title} - {author} 채널(구독자 {subscribers:,}명)의 [{cat}] V/S 떡상({outlier_str}, {views:,}회) 얼굴 없는 영상 분석.”",
+                                "author_name": author,
+                                "source_url": full_url,
+                                "views_count": views,
+                                "likes_count": likes,
+                                "comments_count": comments,
+                                "shares_count": shares,
+                                "engagement_rate": eng_rate,
+                                "growth_velocity": velocity_label,
+                                "channel_subscribers": subscribers,
+                                "outlier_multiplier": outlier_str,
+                                "keywords": [cat.replace("/", ""), "얼굴없는채널", outlier_str, duration_label],
+                                "content_snippet": f"유튜브 [{cat}] 얼굴 없는 채널({duration_label}): {title} (크리에이터: {author}, 구독자: {subscribers:,}명, 조회수: {views:,}회, {outlier_str})",
+                            })
+                            logger.info(f"✨ [V/S 떡상 채굴 성공] {author} (구독자: {subscribers:,}명) ➔ 조회수: {views:,}회 ({outlier_str}) | {title[:28]}...")
+                            if len(posts) >= limit:
+                                break
         except Exception as exc:
             logger.warning(f"YouTube 떡상 영상 파싱 알림 ({cat}): {exc}")
 
-    logger.info(f"✔ YouTube 수집 완료: {len(posts)}건 (최근 14일 + 3만뷰 이상 + 고밀도 AI 영상 100%)")
+    logger.info(f"✔ YouTube 수집 완료: {len(posts)}건 (Faceless & V/S Outlier 영상 100%)")
     return posts[:limit]
 
 

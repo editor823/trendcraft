@@ -1927,8 +1927,23 @@ export default function MarketingLab() {
                           >
                             {viralMeta.label}
                           </span>
+                          {post.channel === 'youtube' && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
+                              🎙️ 얼굴없는 채널
+                            </span>
+                          )}
+                          {(post.outlier_multiplier || post.keywords?.find((k) => k.includes('구독자 대비') || k.includes('V/S'))) && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-50 px-2.5 py-0.5 text-[11px] font-black text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 shadow-xs">
+                              🔥 {post.outlier_multiplier || post.keywords?.find((k) => k.includes('구독자 대비') || k.includes('V/S'))}
+                            </span>
+                          )}
                           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                             {post.author_name}
+                            {post.channel_subscribers ? (
+                              <span className="ml-1 text-[11px] text-slate-400 dark:text-slate-500 font-semibold">
+                                (구독자 {post.channel_subscribers >= 10000 ? `${(post.channel_subscribers / 10000).toFixed(1)}만` : post.channel_subscribers.toLocaleString('ko-KR')}명)
+                              </span>
+                            ) : null}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
