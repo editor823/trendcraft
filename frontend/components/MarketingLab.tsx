@@ -971,7 +971,7 @@ export default function MarketingLab() {
   ]);
 
   return (
-    <div className="space-y-6 text-slate-100">
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 text-slate-100">
       {/* 상단 토스트 알림 배너 */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-indigo-500/40 bg-slate-900/95 px-4 py-3 text-sm font-medium text-indigo-200 shadow-2xl backdrop-blur-md">
@@ -983,9 +983,9 @@ export default function MarketingLab() {
       {/* =====================================================================
           섹션 1: 마케팅 연구소 헤더 & 7대 SNS 서브 채널 탭 네비게이션
          ===================================================================== */}
-      <div className="rounded-2xl border border-slate-800/90 bg-slate-900/70 p-5 shadow-xl backdrop-blur-sm">
+      <div className="rounded-2xl border border-slate-800/90 bg-slate-900/70 p-6 shadow-xl backdrop-blur-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-300">
                 <FlaskConical className="h-3.5 w-3.5" />
@@ -998,30 +998,30 @@ export default function MarketingLab() {
                   : 'Supabase Schema Ready (인메모리 연동 모드)'}
               </span>
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">
               7대 SNS 성공 공식 분해 &amp; 크로스오버 재창조 워크스페이스
             </h2>
-            <p className="text-sm text-slate-400">
+            <p className="text-base text-slate-300">
               좌측에서 채널별 떡상·스테디·롱테일 공식을 3줄로 해부(공부)하고, 우측에서 내 브랜드 소재와 타 채널 포맷으로 융합(연구)하세요.
             </p>
           </div>
 
           {/* 요약 카운터 배지 */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3.5 py-2 text-center">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-2.5 text-center">
               <div className="text-xs text-slate-400">분석된 레퍼런스</div>
-              <div className="text-base font-bold text-white">{posts.length}건</div>
+              <div className="text-lg font-bold text-white">{posts.length}건</div>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3.5 py-2 text-center">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-2.5 text-center">
               <div className="text-xs text-slate-400">내 아이디어 보관함</div>
-              <div className="text-base font-bold text-indigo-400">
+              <div className="text-lg font-bold text-indigo-400">
                 {savedIdeas.length}건
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsNewPostModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/20 px-3.5 py-2.5 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-600/30"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-600/20 px-4 py-2.5 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-600/30"
             >
               <Plus className="h-4 w-4" />
               새 레퍼런스 등록
@@ -1039,18 +1039,18 @@ export default function MarketingLab() {
                 key={channel.id}
                 type="button"
                 onClick={() => handleSelectChannel(channel.id)}
-                className={`group relative flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all ${
+                className={`group relative flex flex-col items-start justify-between rounded-xl border py-3 px-4 text-left transition-all ${
                   isSelected
                     ? `${channel.activeBorder} shadow-lg ring-1 ring-white/10`
                     : 'border-slate-800/80 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:bg-slate-900 hover:text-slate-200'
                 }`}
               >
                 <div className="flex w-full items-center justify-between gap-1">
-                  <span className="text-xs font-bold tracking-tight sm:text-sm">
+                  <span className="text-base font-bold tracking-tight">
                     {channel.shortLabel}
                   </span>
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                    className={`rounded-full px-2 py-0.5 text-sm font-semibold ${
                       isSelected
                         ? 'bg-white/15 text-white'
                         : 'bg-slate-800 text-slate-400'
@@ -1059,7 +1059,7 @@ export default function MarketingLab() {
                     {channelCount}
                   </span>
                 </div>
-                <span className="mt-1 text-[11px] opacity-75">
+                <span className="mt-1 text-xs opacity-75">
                   {channel.englishName}
                 </span>
                 {isSelected && (
@@ -1073,17 +1073,17 @@ export default function MarketingLab() {
         </div>
 
         {/* 선택된 채널의 핵심 알고리즘 공략 요약 바 */}
-        <div className="mt-3 flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/60 px-4 py-2.5 text-xs text-slate-300 sm:flex-row sm:items-center">
+        <div className="mt-3 flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/60 px-4 py-3 text-sm text-slate-300 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`rounded-md border px-2 py-0.5 font-semibold ${currentChannelMeta.badgeColor}`}
+              className={`rounded-md border px-2.5 py-1 text-xs font-bold ${currentChannelMeta.badgeColor}`}
             >
               {currentChannelMeta.label} 핵심 알고리즘
             </span>
-            <span className="text-slate-300">{currentChannelMeta.algorithmFocus}</span>
+            <span className="text-slate-200 font-medium">{currentChannelMeta.algorithmFocus}</span>
           </div>
           <div className="text-slate-400">
-            권장 포맷: <strong className="text-slate-200">{currentChannelMeta.keyFormat}</strong>
+            권장 포맷: <strong className="text-slate-100 font-bold">{currentChannelMeta.keyFormat}</strong>
           </div>
         </div>
       </div>
@@ -1095,24 +1095,24 @@ export default function MarketingLab() {
         {/* -------------------------------------------------------------------
             [좌측 6칸] SNS 성공 공식 분해 (공부 / Deconstruct)
            ------------------------------------------------------------------- */}
-        <div className=" flex flex-col gap-4 xl:col-span-6">
+        <div className="flex flex-col gap-4 xl:col-span-6">
           <div className="rounded-2xl border border-slate-800/90 bg-slate-900/70 p-5 shadow-lg">
             {/* 패널 헤더 */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-800/80">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
                   <Flame className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white">
+                    <h3 className="text-xl font-bold text-white">
                       좌측: SNS 성공 공식 분해 (공부 / Deconstruct)
                     </h3>
-                    <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300 border border-amber-500/20">
+                    <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-300 border border-amber-500/20">
                       STEP 1
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     왜 터졌을까? 조회수 폭발 지표와 AI 3줄 성공 요인(후킹·비주얼·댓글 장치)을 해부합니다.
                   </p>
                 </div>
@@ -1212,7 +1212,7 @@ export default function MarketingLab() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${viralMeta.badgeStyle}`}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${viralMeta.badgeStyle}`}
                           >
                             {viralMeta.label}
                           </span>
@@ -1221,7 +1221,7 @@ export default function MarketingLab() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
                             <TrendingUp className="h-3 w-3" />
                             반응지수 {post.engagement_rate}% · {post.growth_velocity}
                           </span>
@@ -1229,13 +1229,13 @@ export default function MarketingLab() {
                       </div>
 
                       {/* 포스팅 제목 */}
-                      <h4 className="mt-3 text-base font-bold leading-snug text-white">
+                      <h4 className="mt-3 text-xl font-bold leading-snug text-white">
                         {post.title}
                       </h4>
 
                       {/* 후킹 카피 인용 박스 */}
-                      <div className="mt-2.5 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-amber-300">
+                      <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
+                        <div className="flex items-center justify-between text-sm font-semibold text-amber-300">
                           <span>⚡ 초반 3초 / 첫 문장 후킹 카피</span>
                           <button
                             type="button"
@@ -1246,56 +1246,56 @@ export default function MarketingLab() {
                                 '후킹 카피'
                               )
                             }
-                            className="inline-flex items-center gap-1 text-slate-400 hover:text-amber-200"
+                            className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-amber-200"
                           >
                             {copiedKey === `hook-${post.id}` ? (
-                              <Check className="h-3 w-3 text-emerald-400" />
+                              <Check className="h-3.5 w-3.5 text-emerald-400" />
                             ) : (
-                              <Copy className="h-3 w-3" />
+                              <Copy className="h-3.5 w-3.5" />
                             )}
                             복사
                           </button>
                         </div>
-                        <p className="mt-1 text-xs font-medium leading-relaxed text-amber-100/90">
+                        <p className="mt-2 text-base font-medium leading-relaxed text-amber-100">
                           {post.hook_copy}
                         </p>
                       </div>
 
                       {/* 조회수 / 반응 폭발 지표 4단 그리드 */}
-                      <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/80 p-2.5 text-center">
+                      <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl border border-slate-800/80 bg-slate-950/80 p-3 text-center">
                         <div>
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
-                            <Eye className="h-3 w-3 text-sky-400" />
+                          <div className="flex items-center justify-center gap-1 text-xs text-slate-400">
+                            <Eye className="h-3.5 w-3.5 text-sky-400" />
                             조회/도달
                           </div>
-                          <div className="mt-0.5 text-xs font-bold text-white">
+                          <div className="mt-1 text-lg font-bold text-white">
                             {formatKoreanMetric(post.views_count)}
                           </div>
                         </div>
                         <div>
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
-                            <Heart className="h-3 w-3 text-rose-400" />
+                          <div className="flex items-center justify-center gap-1 text-xs text-slate-400">
+                            <Heart className="h-3.5 w-3.5 text-rose-400" />
                             좋아요/공감
                           </div>
-                          <div className="mt-0.5 text-xs font-bold text-white">
+                          <div className="mt-1 text-lg font-bold text-white">
                             {formatKoreanMetric(post.likes_count)}
                           </div>
                         </div>
                         <div>
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
-                            <MessageSquare className="h-3 w-3 text-amber-400" />
+                          <div className="flex items-center justify-center gap-1 text-xs text-slate-400">
+                            <MessageSquare className="h-3.5 w-3.5 text-amber-400" />
                             댓글/토론
                           </div>
-                          <div className="mt-0.5 text-xs font-bold text-white">
+                          <div className="mt-1 text-lg font-bold text-white">
                             {formatKoreanMetric(post.comments_count)}
                           </div>
                         </div>
                         <div>
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
-                            <Share2 className="h-3 w-3 text-emerald-400" />
+                          <div className="flex items-center justify-center gap-1 text-xs text-slate-400">
+                            <Share2 className="h-3.5 w-3.5 text-emerald-400" />
                             공유/저장
                           </div>
-                          <div className="mt-0.5 text-xs font-bold text-white">
+                          <div className="mt-1 text-lg font-bold text-white">
                             {formatKoreanMetric(post.shares_count)}
                           </div>
                         </div>
@@ -1306,7 +1306,7 @@ export default function MarketingLab() {
                         {post.keywords.map((kw) => (
                           <span
                             key={kw}
-                            className="rounded-md border border-slate-800 bg-slate-900 px-2 py-0.5 text-[11px] font-medium text-slate-300"
+                            className="rounded-md border border-slate-800 bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-300"
                           >
                             {kw}
                           </span>
@@ -1314,39 +1314,39 @@ export default function MarketingLab() {
                       </div>
 
                       {/* AI 성공 요인 분해 (왜 터졌을까? 3줄 분석) */}
-                      <div className="mt-4 rounded-xl border border-indigo-500/25 bg-indigo-950/20 p-3.5 space-y-2.5">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
-                          <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                      <div className="mt-4 rounded-xl border border-indigo-500/25 bg-indigo-950/20 p-4 space-y-3">
+                        <div className="flex items-center gap-1.5 text-sm font-bold text-indigo-300">
+                          <Sparkles className="h-4 w-4 text-indigo-400" />
                           AI 성공 요인 분해 (왜 터졌을까? 3줄 핵심 해부)
                         </div>
 
-                        <div className="space-y-2 text-xs">
-                          <div className="flex items-start gap-2">
-                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/30">
-                              <Lightbulb className="h-3 w-3" />
+                        <div className="space-y-2.5">
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md bg-rose-500/15 px-2 py-0.5 text-sm font-bold text-rose-300 border border-rose-500/30">
+                              <Lightbulb className="h-3.5 w-3.5" />
                               후킹 포인트
                             </span>
-                            <p className="leading-relaxed text-slate-200">
+                            <p className="text-sm leading-relaxed text-slate-200">
                               {post.ai_hook_point}
                             </p>
                           </div>
 
-                          <div className="flex items-start gap-2">
-                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-300 border border-sky-500/30">
-                              <LayoutTemplate className="h-3 w-3" />
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md bg-sky-500/15 px-2 py-0.5 text-sm font-bold text-sky-300 border border-sky-500/30">
+                              <LayoutTemplate className="h-3.5 w-3.5" />
                               비주얼 구조
                             </span>
-                            <p className="leading-relaxed text-slate-200">
+                            <p className="text-sm leading-relaxed text-slate-200">
                               {post.ai_visual_structure}
                             </p>
                           </div>
 
-                          <div className="flex items-start gap-2">
-                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
-                              <MessageCircleQuestion className="h-3 w-3" />
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-sm font-bold text-emerald-300 border border-emerald-500/30">
+                              <MessageCircleQuestion className="h-3.5 w-3.5" />
                               댓글 유도 장치
                             </span>
-                            <p className="leading-relaxed text-slate-200">
+                            <p className="text-sm leading-relaxed text-slate-200">
                               {post.ai_comment_trigger}
                             </p>
                           </div>
@@ -1355,7 +1355,7 @@ export default function MarketingLab() {
 
                       {/* 카드 하단 액션 버튼: "이 분석으로 연구하기" */}
                       <div className="mt-4 flex items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-xs text-slate-400">
                           {isSelected
                             ? '✅ 현재 우측 연구 워크스페이스에 연동됨'
                             : '우측 워크스페이스로 데이터를 보내 내 콘텐츠로 재창조합니다.'}
@@ -1363,14 +1363,14 @@ export default function MarketingLab() {
                         <button
                           type="button"
                           onClick={() => handleStudyWithPost(post)}
-                          className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                          className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
                             isSelected
                               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500'
                               : 'border border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-600 hover:text-white'
                           }`}
                         >
                           <span>이 분석으로 연구하기</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
+                          <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -1395,19 +1395,19 @@ export default function MarketingLab() {
             {/* 패널 헤더 */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-800/80">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
                   <Wand2 className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white">
+                    <h3 className="text-xl font-bold text-white">
                       우측: 나만의 크로스오버 재창조 워크스페이스 (연구 / Synthesize)
                     </h3>
-                    <span className="rounded-md bg-indigo-500/15 px-2 py-0.5 text-[11px] font-semibold text-indigo-300 border border-indigo-500/30">
+                    <span className="rounded-md bg-indigo-500/15 px-2 py-0.5 text-xs font-semibold text-indigo-300 border border-indigo-500/30">
                       STEP 2
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     선택된 SNS 성공 공식을 다른 미디어 채널과 내 브랜드 소재에 이식하여 새로운 기획안을 완성합니다.
                   </p>
                 </div>
@@ -1422,7 +1422,7 @@ export default function MarketingLab() {
                     '전체 연구 기획안(Markdown)'
                   )
                 }
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:border-indigo-500/50 hover:text-white"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:border-indigo-500/50 hover:text-white"
               >
                 {copiedKey === 'full-blueprint' ? (
                   <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -1435,29 +1435,29 @@ export default function MarketingLab() {
 
             {/* 현재 연동된 원본 레퍼런스 요약 배너 */}
             {activePost && (
-              <div className="mt-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-slate-900/90 p-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="mt-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-slate-900/90 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-md bg-indigo-500/20 px-2 py-0.5 font-bold text-indigo-300 border border-indigo-500/30">
+                    <span className="rounded-md bg-indigo-500/20 px-2 py-0.5 text-xs font-bold text-indigo-300 border border-indigo-500/30">
                       연동된 원본 DNA
                     </span>
                     <span
-                      className={`rounded-md border px-2 py-0.5 font-semibold ${currentChannelMeta.badgeColor}`}
+                      className={`rounded-md border px-2.5 py-0.5 text-xs font-bold ${currentChannelMeta.badgeColor}`}
                     >
                       {currentChannelMeta.shortLabel}
                     </span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+                    <ChevronRight className="h-4 w-4 text-slate-500" />
                     <span
-                      className={`rounded-md border px-2 py-0.5 font-semibold ${targetChannelMeta.badgeColor}`}
+                      className={`rounded-md border px-2.5 py-0.5 text-xs font-bold ${targetChannelMeta.badgeColor}`}
                     >
                       {targetChannelMeta.shortLabel} 이식
                     </span>
                   </div>
-                  <span className="text-[11px] text-emerald-300 font-semibold">
+                  <span className="text-xs text-emerald-300 font-bold">
                     원본 반응지수 {activePost.engagement_rate}% 검증 공식
                   </span>
                 </div>
-                <p className="mt-2 text-xs font-semibold text-white line-clamp-1">
+                <p className="mt-2 text-sm font-bold text-white line-clamp-1">
                   “{activePost.title}”
                 </p>
               </div>
@@ -1465,17 +1465,17 @@ export default function MarketingLab() {
 
             {/* 컨트롤 박스: "어떤 채널/소재와 융합할 것인가?" */}
             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+              <div className="flex items-center gap-2 text-sm font-bold text-indigo-300">
                 <SlidersHorizontal className="h-4 w-4" />
                 어떤 채널 · 소재와 융합할 것인가? (Crossover Parameter)
               </div>
 
               {/* 1) 이식할 타깃 SNS 채널 선택 */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-semibold text-slate-200 mb-2">
                   ① 이식할 타깃 채널 선택 (원본: {currentChannelMeta.shortLabel} ➔ 타깃: {targetChannelMeta.shortLabel})
                 </label>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-7">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
                   {SNS_CHANNELS.map((ch) => {
                     const isTarget = targetChannel === ch.id;
                     return (
@@ -1483,7 +1483,7 @@ export default function MarketingLab() {
                         key={ch.id}
                         type="button"
                         onClick={() => setTargetChannel(ch.id)}
-                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                        className={`rounded-xl border px-3.5 py-2.5 text-base font-bold transition ${
                           isTarget
                             ? `${ch.activeBorder} shadow-sm`
                             : 'border-slate-800 bg-slate-900/70 text-slate-400 hover:border-slate-700 hover:text-slate-200'
@@ -1498,8 +1498,8 @@ export default function MarketingLab() {
 
               {/* 2) 융합할 내 브랜드/상품/주제 소재 입력 */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-slate-300">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-slate-200">
                     ② 융합할 내 콘텐츠 소재 / 상품 / 캠페인 주제
                   </label>
                   <button
@@ -1510,9 +1510,9 @@ export default function MarketingLab() {
                         showToast('✨ 입력하신 소재로 AI 크로스오버 기획안을 재합성했습니다!');
                       }
                     }}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:text-indigo-300"
                   >
-                    <RefreshCw className="h-3 w-3" />
+                    <RefreshCw className="h-3.5 w-3.5" />
                     AI 제안 다시 생성
                   </button>
                 </div>
@@ -1522,20 +1522,20 @@ export default function MarketingLab() {
                     value={fusionTopic}
                     onChange={(e) => setFusionTopic(e.target.value)}
                     placeholder="예: 성수동 비건 베이커리 팝업, AI 회의록 SaaS 런칭, 스마트스토어 조명..."
-                    className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                    className="flex-1 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-base font-medium text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
                 {/* 빠른 프리셋 칩 */}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] text-slate-500 mr-1">빠른 소재 적용:</span>
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-slate-400 mr-1 font-medium">빠른 소재 적용:</span>
                   {QUICK_FUSION_TOPICS.map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => setFusionTopic(preset)}
-                      className={`rounded-full border px-2.5 py-0.5 text-[10px] transition ${
+                      className={`rounded-full border px-3 py-1 text-xs transition ${
                         fusionTopic === preset
-                          ? 'border-indigo-500/60 bg-indigo-500/20 text-indigo-200 font-semibold'
+                          ? 'border-indigo-500/60 bg-indigo-500/20 text-indigo-200 font-bold'
                           : 'border-slate-800 bg-slate-900/80 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                       }`}
                     >
@@ -1549,13 +1549,13 @@ export default function MarketingLab() {
             {/* ---------------------------------------------------------------
                 AI 제안 카드 1) 크로스 미디어 이식 (Cross-Media Adaptation)
                --------------------------------------------------------------- */}
-            <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/15 p-4 space-y-2.5">
+            <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/15 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/20 text-xs font-bold text-emerald-300">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-sm font-bold text-emerald-300">
                     1
                   </span>
-                  <h4 className="text-sm font-bold text-emerald-200">
+                  <h4 className="text-base font-bold text-emerald-200">
                     크로스 미디어 이식 공식 ({currentChannelMeta.shortLabel} ➔{' '}
                     {targetChannelMeta.shortLabel})
                   </h4>
@@ -1569,12 +1569,12 @@ export default function MarketingLab() {
                       '크로스 미디어 이식 전략'
                     )
                   }
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20"
                 >
                   {copiedKey === 'card-cross-media' ? (
-                    <Check className="h-3 w-3" />
+                    <Check className="h-3.5 w-3.5" />
                   ) : (
-                    <Copy className="h-3 w-3" />
+                    <Copy className="h-3.5 w-3.5" />
                   )}
                   복사
                 </button>
@@ -1583,20 +1583,20 @@ export default function MarketingLab() {
                 rows={3}
                 value={crossMediaStrategy}
                 onChange={(e) => setCrossMediaStrategy(e.target.value)}
-                className="w-full rounded-xl border border-emerald-500/20 bg-slate-950/70 p-3 text-xs leading-relaxed text-slate-200 focus:border-emerald-400 focus:outline-none"
+                className="w-full rounded-xl border border-emerald-500/20 bg-slate-950/70 p-3.5 text-base font-medium leading-relaxed text-slate-100 focus:border-emerald-400 focus:outline-none"
               />
             </div>
 
             {/* ---------------------------------------------------------------
                 AI 제안 카드 2) 신규 콘텐츠 / 상품 기획 (New Content Planning)
                --------------------------------------------------------------- */}
-            <div className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-950/15 p-4 space-y-3">
+            <div className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-950/15 p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/20 text-xs font-bold text-indigo-300">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/20 text-sm font-bold text-indigo-300">
                     2
                   </span>
-                  <h4 className="text-sm font-bold text-indigo-200">
+                  <h4 className="text-base font-bold text-indigo-200">
                     신규 콘텐츠 · 상품 기획안 (제목 / 썸네일 / 전개 구조)
                   </h4>
                 </div>
@@ -1609,12 +1609,12 @@ export default function MarketingLab() {
                       '신규 콘텐츠 기획안'
                     )
                   }
-                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/20"
+                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20"
                 >
                   {copiedKey === 'card-content-plan' ? (
-                    <Check className="h-3 w-3" />
+                    <Check className="h-3.5 w-3.5" />
                   ) : (
-                    <Copy className="h-3 w-3" />
+                    <Copy className="h-3.5 w-3.5" />
                   )}
                   기획안 복사
                 </button>
@@ -1622,40 +1622,40 @@ export default function MarketingLab() {
 
               {/* 맞춤형 제목 / 후킹 카피 */}
               <div>
-                <label className="block text-[11px] font-semibold text-indigo-300 mb-1">
+                <label className="block text-sm font-semibold text-indigo-300 mb-1.5">
                   🎯 배운 요소를 적용한 나만의 제목 / 첫 줄 후킹 카피
                 </label>
                 <input
                   type="text"
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs font-semibold text-white focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-4 py-2.5 text-lg font-bold text-white focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               {/* 썸네일 / 비주얼 구조 */}
               <div>
-                <label className="block text-[11px] font-semibold text-sky-300 mb-1">
+                <label className="block text-sm font-semibold text-sky-300 mb-1.5">
                   🖼️ 나만의 썸네일 / 비주얼 레이아웃 연출안
                 </label>
                 <textarea
                   rows={2}
                   value={customThumbnailConcept}
                   onChange={(e) => setCustomThumbnailConcept(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-xs leading-relaxed text-slate-200 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-base font-medium leading-relaxed text-slate-100 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               {/* 본문/영상 4단 전개 구조 */}
               <div>
-                <label className="block text-[11px] font-semibold text-amber-300 mb-1">
+                <label className="block text-sm font-semibold text-amber-300 mb-1.5">
                   📐 본문 · 영상 4단 전개 구조 &amp; 댓글 트리거 설계
                 </label>
                 <textarea
                   rows={4}
                   value={contentOutline}
                   onChange={(e) => setContentOutline(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-xs leading-relaxed text-slate-200 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-base font-medium leading-relaxed text-slate-100 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -1666,10 +1666,10 @@ export default function MarketingLab() {
             <div className="mt-4 rounded-xl border border-purple-500/30 bg-purple-950/15 p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-500/20 text-xs font-bold text-purple-300">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/20 text-sm font-bold text-purple-300">
                     3
                   </span>
-                  <h4 className="text-sm font-bold text-purple-200">
+                  <h4 className="text-base font-bold text-purple-200">
                     메모 &amp; 아이디어 보관함 (Supabase DB 저장 · 클립보드 지원)
                   </h4>
                 </div>
@@ -1681,7 +1681,7 @@ export default function MarketingLab() {
                         e.target.value as 'draft' | 'ready' | 'published'
                       )
                     }
-                    className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs text-slate-200 focus:border-purple-400 focus:outline-none"
+                    className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 focus:border-purple-400 focus:outline-none font-medium"
                   >
                     <option value="draft">📝 초안 (Draft)</option>
                     <option value="ready">🚀 발행 준비 (Ready)</option>
@@ -1690,9 +1690,9 @@ export default function MarketingLab() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
                     연구 메모 / 실행 액션 아이템
                   </label>
                   <input
@@ -1700,11 +1700,11 @@ export default function MarketingLab() {
                     value={memoText}
                     onChange={(e) => setMemoText(e.target.value)}
                     placeholder="예: 금요일 오전 9시 스마트블록 발행, 매니챗 키워드 '조명' 세팅..."
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-purple-400 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3.5 py-2.5 text-sm font-medium text-slate-200 placeholder-slate-500 focus:border-purple-400 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
                     분류 태그 (쉼표로 구분)
                   </label>
                   <input
@@ -1712,7 +1712,7 @@ export default function MarketingLab() {
                     value={customTagsInput}
                     onChange={(e) => setCustomTagsInput(e.target.value)}
                     placeholder="#크로스오버, #릴스이식, #상세페이지"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-purple-400 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 px-3.5 py-2.5 text-sm font-medium text-slate-200 placeholder-slate-500 focus:border-purple-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1748,14 +1748,14 @@ export default function MarketingLab() {
               {/* 저장된 아이디어 보관함 리스트 */}
               <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-200">
+                  <span className="text-sm font-bold text-slate-200">
                     📚 저장된 내 아이디어 보관함 ({filteredSavedIdeas.length}건)
                   </span>
                   <div className="flex flex-wrap items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setVaultFilterChannel('all')}
-                      className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
                         vaultFilterChannel === 'all'
                           ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                           : 'text-slate-400 hover:text-slate-200'
@@ -1768,7 +1768,7 @@ export default function MarketingLab() {
                         key={ch.id}
                         type="button"
                         onClick={() => setVaultFilterChannel(ch.id)}
-                        className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
                           vaultFilterChannel === ch.id
                             ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                             : 'text-slate-400 hover:text-slate-200'
@@ -1791,27 +1791,27 @@ export default function MarketingLab() {
                     return (
                       <div
                         key={idea.id}
-                        className={`rounded-xl border p-3 transition ${
+                        className={`rounded-xl border p-3.5 transition ${
                           idea.is_pinned
                             ? 'border-amber-500/40 bg-slate-900/95'
                             : 'border-slate-800 bg-slate-950/75 hover:border-slate-700'
                         }`}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs">
                             {idea.is_pinned && (
-                              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                              <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-300">
                                 📌 고정
                               </span>
                             )}
                             <span className="font-semibold text-slate-300">
                               {srcMeta?.shortLabel} ➔ {tgtMeta?.shortLabel}
                             </span>
-                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-indigo-300">
+                            <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-indigo-300">
                               {idea.fusion_topic}
                             </span>
                             <span
-                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                              className={`rounded px-2 py-0.5 text-xs font-semibold ${
                                 idea.status === 'ready'
                                   ? 'bg-emerald-500/15 text-emerald-300'
                                   : idea.status === 'published'
@@ -1827,7 +1827,7 @@ export default function MarketingLab() {
                             <button
                               type="button"
                               onClick={() => handleLoadIdeaToWorkspace(idea)}
-                              className="rounded px-2 py-0.5 text-[10px] font-semibold text-indigo-300 hover:bg-indigo-500/15"
+                              className="rounded px-2 py-0.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/15"
                             >
                               불러오기
                             </button>
@@ -1872,11 +1872,11 @@ export default function MarketingLab() {
                           </div>
                         </div>
 
-                        <p className="mt-1.5 text-xs font-bold text-white">
+                        <p className="mt-2 text-base font-bold text-white">
                           {idea.custom_title}
                         </p>
                         {idea.memo && (
-                          <p className="mt-1 text-[11px] text-slate-400">
+                          <p className="mt-1 text-xs text-slate-300">
                             💡 메모: {idea.memo}
                           </p>
                         )}
@@ -1884,7 +1884,7 @@ export default function MarketingLab() {
                           {idea.tags.map((t) => (
                             <span
                               key={t}
-                              className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400 border border-slate-800"
+                              className="rounded bg-slate-900 px-2 py-0.5 text-xs text-slate-400 border border-slate-800"
                             >
                               {t}
                             </span>
