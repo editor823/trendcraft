@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import MarketingLab from '../components/MarketingLab';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { MainNavTab } from '../types/marketing';
 
 import { fetchTrendClusters, getMockTrendClusters } from '@/lib/supabase';
@@ -142,11 +143,11 @@ export default function TrendCraftHomePage() {
   }, [filteredClusters]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
       {/* =====================================================================
-          상단 글로벌 네비게이션 헤더 (2대 대메뉴 탭 스위처)
+          상단 글로벌 네비게이션 헤더 (2대 대메뉴 탭 스위처 + 테마 토글)
          ===================================================================== */}
-      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90 transition-colors duration-200">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           {/* 브랜드 로고 */}
           <div className="flex items-center gap-3">
@@ -155,68 +156,73 @@ export default function TrendCraftHomePage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-extrabold tracking-tight text-white">
+                <h1 className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
                   TrendCraft
                 </h1>
-                <span className="rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                <span className="rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-300">
                   v2.4 PRO
                 </span>
                 {activeMainTab === 'trend_intelligence' && (
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       isMockMode
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                         : isConnected
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                        : 'bg-slate-100 text-slate-600 border border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                     }`}
                   >
                     {isMockMode ? '샘플 미리보기' : isConnected ? 'Supabase Live' : 'Supabase 연결 대기'}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 AI 트렌드 레이더 &amp; 7대 SNS 바이럴 마케팅 연구소
               </p>
             </div>
           </div>
 
-          {/* 2대 대메뉴 탭 스위처 버튼 그룹 */}
-          <nav
-            aria-label="대메뉴 탭 네비게이션"
-            className="flex items-center gap-1.5 rounded-2xl border border-slate-800 bg-slate-900/90 p-1.5 shadow-inner"
-          >
-            <button
-              type="button"
-              onClick={() => setActiveMainTab('trend_intelligence')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all sm:text-sm ${
-                activeMainTab === 'trend_intelligence'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold'
-                  : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
-              }`}
+          {/* 우측 영역: 2대 대메뉴 탭 스위처 + 다크/라이트 테마 토글 버튼 */}
+          <div className="flex items-center gap-2.5">
+            <nav
+              aria-label="대메뉴 탭 네비게이션"
+              className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-100/90 p-1.5 shadow-inner dark:border-slate-800 dark:bg-slate-900/90"
             >
-              <Zap className="h-4 w-4" />
-              <span>⚡ 트렌드 인텔리전스</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('trend_intelligence')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all sm:text-sm ${
+                  activeMainTab === 'trend_intelligence'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold'
+                    : 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-200'
+                }`}
+              >
+                <Zap className="h-4 w-4" />
+                <span>⚡ 트렌드 인텔리전스</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveMainTab('marketing_lab')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all sm:text-sm ${
-                activeMainTab === 'marketing_lab'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30 font-extrabold'
-                  : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
-              }`}
-            >
-              <FlaskConical className="h-4 w-4" />
-              <span>🔬 마케팅 연구소 (Marketing Lab)</span>
-            </button>
-          </nav>
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('marketing_lab')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all sm:text-sm ${
+                  activeMainTab === 'marketing_lab'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30 font-extrabold'
+                    : 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-200'
+                }`}
+              >
+                <FlaskConical className="h-4 w-4" />
+                <span>🔬 마케팅 연구소 (Marketing Lab)</span>
+              </button>
+            </nav>
+
+            {/* 다크/라이트 모드 테마 토글 버튼 */}
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* [⚡ 트렌드 인텔리전스] 활성화 시 상단 보조 필터 서브바 노출 */}
         {activeMainTab === 'trend_intelligence' && (
-          <div className="border-t border-slate-800/60 bg-slate-950/70 px-4 py-2.5 sm:px-6">
+          <div className="border-t border-slate-200 bg-slate-100/80 px-4 py-2.5 sm:px-6 dark:border-slate-800/60 dark:bg-slate-950/70 transition-colors duration-200">
             <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2.5">
                 {/* 새로고침 / Supabase 재연결 버튼 */}
@@ -225,13 +231,13 @@ export default function TrendCraftHomePage() {
                   onClick={handleRefreshSupabase}
                   disabled={isLoading}
                   title="Supabase 최신 데이터 동기화"
-                  className="p-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-white transition-all disabled:opacity-50"
+                  className="p-2 rounded-xl border border-slate-300 bg-white text-slate-600 hover:text-slate-900 shadow-sm transition-all disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                 </button>
 
                 {/* 주기 필터 토글 (일간 / 주간 / 월간) */}
-                <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800">
+                <div className="inline-flex rounded-xl bg-slate-200/80 p-1 border border-slate-300 dark:bg-slate-900 dark:border-slate-800">
                   {(['daily', 'weekly', 'monthly'] as PeriodType[]).map((p) => (
                     <button
                       key={p}
@@ -240,7 +246,7 @@ export default function TrendCraftHomePage() {
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                         period === p
                           ? 'bg-amber-500 text-slate-950 shadow-sm font-bold'
-                          : 'text-slate-400 hover:text-slate-200'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                       }`}
                     >
                       {p === 'daily' ? '일간' : p === 'weekly' ? '주간' : '월간'}
@@ -249,7 +255,7 @@ export default function TrendCraftHomePage() {
                 </div>
 
                 {/* 지역 필터 탭 (전체 / 국내 / 글로벌) */}
-                <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800">
+                <div className="inline-flex rounded-xl bg-slate-200/80 p-1 border border-slate-300 dark:bg-slate-900 dark:border-slate-800">
                   {(['ALL', 'KR', 'GLOBAL'] as RegionType[]).map((r) => (
                     <button
                       key={r}
@@ -258,7 +264,7 @@ export default function TrendCraftHomePage() {
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                         region === r
                           ? 'bg-emerald-600 text-white shadow-sm font-bold'
-                          : 'text-slate-400 hover:text-slate-200'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                       }`}
                     >
                       {r === 'ALL' ? '전체' : r === 'KR' ? '국내' : '글로벌'}
@@ -270,24 +276,24 @@ export default function TrendCraftHomePage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 {/* 날짜 선택기 */}
                 <div className="relative flex items-center">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+                  <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-3 pointer-events-none" />
                   <input
                     type="date"
                     value={targetDate}
                     onChange={(e) => setTargetDate(e.target.value)}
-                    className="pl-8 pr-2.5 py-1.5 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500/60"
+                    className="pl-8 pr-2.5 py-1.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 shadow-sm focus:outline-none focus:border-amber-500/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                   />
                 </div>
 
                 {/* 키워드 검색창 */}
                 <div className="relative flex items-center">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+                  <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-3 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="키워드, 아이디어 검색..."
-                    className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 w-36 sm:w-56"
+                    className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:border-amber-500/60 w-36 sm:w-56 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:placeholder-slate-500"
                   />
                 </div>
               </div>

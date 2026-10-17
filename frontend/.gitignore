@@ -1,0 +1,22 @@
+# =============================================================================
+# TrendCraft Frontend .gitignore
+# =============================================================================
+
+# 민감한 환경 변수 (API 키, Supabase 키 등)
+.env*
+*.env*
+!.env.example
+
+# 의존성 및 빌드
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# OS 및 에디터
+.DS_Store
+*.pem
+*.key

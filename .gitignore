@@ -5,11 +5,24 @@
 # 1. 민감한 환경 변수 및 시크릿 키 (절대 GitHub에 올라가면 안 됨)
 *.env
 *.env.*
+*.env.local
+*.env.*.local
+.env*
+**/.env
+**/.env.*
+**/.env.local
+**/.env.*.local
 !.env.example
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+!**/.env.example
+
+# 보안 키, 인증서, 서비스 계정 JSON
+*.pem
+*.key
+*.cert
+*credential*.json
+*serviceAccount*.json
+**/*credential*.json
+**/*serviceAccount*.json
 
 # 2. Node.js & 프론트엔드 의존성 및 빌드 파일
 node_modules/
