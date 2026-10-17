@@ -55,6 +55,28 @@ export interface AiDeconstructBreakdown {
   commentTrigger: string;   // 3) 댓글 / 공유 / 저장 유도 장치
 }
 
+/** 제목 키워드 배치 위치 */
+export type TitleKeywordPlacement = 'front' | 'middle' | 'back';
+
+/** 이 SNS만의 고유 성공 공식 인터페이스 */
+export interface UniqueSnsFormula {
+  name?: string;             // 공식 명칭 (예: "네이버 스마트블록 DIA+ 체류시간 공식")
+  core_logic?: string;        // 핵심 알고리즘 문법 원리
+  algorithm_factor?: string; // 알고리즘 가중 지표
+  title: string;             // 공식 명칭
+  coreMetric: string;        // 핵심 알고리즘 가중 지표
+  strategy: string;          // 상세 알고리즘 공략법
+}
+
+/** 최적 궁합 추천 SNS 채널 및 알고리즘 근거 */
+export interface RecommendedTargetChannel {
+  targetChannel: SnsChannel;
+  target_channel?: SnsChannel; // 하위 호환
+  channelName: string;
+  reason: string;              // 왜 이 채널과 궁합이 좋은지 알고리즘 근거
+  fit_score?: number;
+}
+
 /** 좌측 '공부 (Deconstruct)'용 SNS 성공 사례 게시글 모델 (Supabase marketing_lab_posts 매핑) */
 export interface MarketingLabPost {
   id: string;
@@ -76,6 +98,73 @@ export interface MarketingLabPost {
   ai_comment_trigger: string;
   published_at: string;
   created_at?: string;
+
+  // --- 신규 고도화 분석 필드 ---
+  title_keyword_placement?: TitleKeywordPlacement; // 제목 키워드 배치 (앞/중간/뒤)
+  title_hook_type?: string;                       // 후킹 유형 (수치 충격형, 통념 파괴형 등)
+  image_count_info?: string;                      // 이미지 장수 스펙 (예: "이미지 12장 · GIF 2개")
+  char_count?: number;                            // 공백 제외 글자 수 (예: 2450)
+  content_duration_or_slides?: string;            // 영상 재생시간 or 슬라이드 수 (예: "18분 45초", "카드뉴스 9장")
+  unique_sns_formula?: UniqueSnsFormula;          // 이 SNS만의 고유 성공 공식
+  recommended_targets?: RecommendedTargetChannel[];// 최적 궁합 추천 SNS 1~2개
+}
+
+/** 채널별 100% 맞춤형 콘텐츠 기획서 구조체 */
+export interface ChannelSpecificBlueprint {
+  // 공통 필수 필드
+  targetChannel: SnsChannel;
+  title: string;
+  titleTemplate?: string;
+  strategy: string;
+  visualConcept: string;
+  outlineSteps: string[];
+  algorithmRationale: string; // 💡 왜 이 구조로 작성해야 하는가? (알고리즘 반영 이유)
+
+  // 채널별 특화 서식 데이터
+  naverBlogPack?: {
+    smartblockTitle: string;
+    intro3LineQuotes: string;
+    imageAndGifPrompts: string;
+    bodyWorkflow?: string;
+    recommendedImageCount?: string;
+  };
+  seoBlogPack?: {
+    eeatStrategy: string;
+    h2H3Outline: string[];
+    geoSnippetParagraph: string;
+    eeatExpertisePillars?: string[];
+    featuredSnippetTarget?: string;
+  };
+  threadsPack?: {
+    firstPostPunchline: string;
+    fiveStepThread: string[];
+    openDebateQuestion: string;
+  };
+  xPack?: {
+    highlightTweet: string;
+    visualAnnotationTip: string;
+    bookmarkChecklist: string[];
+  };
+  xTwitterPack?: {
+    singleHookTweet: string;
+    visualDataAnnotation: string;
+    bookmarkTriggerChecklist: string[];
+  };
+  instagramPack?: {
+    coverVisualHook: string;
+    carouselCards: string[];
+    autoDmKeywordCta: string;
+  };
+  youtubePack?: {
+    splitThumbnailConcept: string;
+    intro30sScript: string;
+    pinnedCtaLeadMagnet: string;
+  };
+  facebookPack?: {
+    notepadCaptureConcept: string;
+    storylineNarrative: string;
+    pollVotingDevice: string;
+  };
 }
 
 /** 우측 '연구 (Synthesize)' AI 크로스오버 생성 결과 구조체 */
@@ -111,6 +200,7 @@ export interface MarketingLabIdea {
   custom_title: string;
   custom_thumbnail_concept: string;
   content_outline: string;
+  algorithm_rationale?: string; // 알고리즘 반영 이유
   memo: string;
   tags: string[];
   is_pinned: boolean;
